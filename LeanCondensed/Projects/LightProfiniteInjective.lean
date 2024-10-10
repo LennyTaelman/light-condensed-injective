@@ -31,7 +31,16 @@ lemma to_discrete_lifts_along_injective_profinite
   (X Y : Profinite.{u}) (f : X → Y) (f_cont: Continuous f) (f_inj: Function.Injective f)
   (g : X → S) (g_cont : Continuous g) :
   ∃ h : Y → S, (h ∘ f = g) ∧ (Continuous h) := by
-  -- write X and Y as compatible limits of finite sets
+  -- write Y as lim Y_i
+  have Y_fin := sorry
+
+  -- define X_i = im(X→Y→Y_i)
+
+  -- show X → lim X_i is iso
+
+  -- there exists i such that g : X → S factors over X_i → S
+
+  -- now build h : Y → S via Y → Y_i → S
 
   sorry
 
