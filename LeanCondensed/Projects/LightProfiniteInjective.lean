@@ -2,9 +2,7 @@
 Authors: Lenny Taelman
 -/
 import Mathlib.CategoryTheory.Preadditive.Injective
--- import Mathlib.CategoryTheory.FinCategory
-import Mathlib.Topology.Category.LightProfinite.Sequence
--- import LeanCondensed.Mathlib.Condensed.Light.Limits
+import LeanCondensed.Mathlib.Condensed.Light.Limits
 /-!
 
 # Project: show that non-empty light profinite spaces are injective in all profinite spaces
@@ -17,7 +15,7 @@ noncomputable section
 
 universe u
 
-open CategoryTheory LightProfinite OnePoint Limits
+open CategoryTheory LightProfinite Limits
 
 -- SCRATCHPAD START
 
@@ -42,20 +40,65 @@ instance cont_f : Continuous f.toFun := by continuity
 
 -- from continuous map to morphism
 variable (X_0 Y_0 : Type u) [TopologicalSpace X_0] [TopologicalSpace Y_0]
-variable (g : X_0 → Y_0) [g_cont : Continuous g]
+variable (g : C(X_0, Y_0))
+#check g -- g : C(X_0, Y_0)
+#check g.toFun -- g.toFun : X_0 → Y_0
+
+#check TopCat.of X_0
+#check (g : TopCat.of X_0 ⟶ TopCat.of Y_0)
+
+
+-- image of a morphism in TopCat.{u}
+variable (X Y : Profinite.{u}) (f : X ⟶ Y)
+-- #check (inferInstance : HasImage f)
+
+-- fails to synthesize, so let's work concretely
+-- goal: produce a subtype S of
+variable (X Y : Type u) [TopologicalSpace X] [TopologicalSpace Y] (f : C(X, Y))
+variable (T : DiscreteQuotient Y)
+#check (T.proj : Y → T)
+#check T.toSetoid
+
+
+#check T
+
+
+
+
+
+
+
+
+
+
+
+
+#print inferInstance
+
+
+open MonoFactorisation
+
+def mf := MonoFactorisation f
+#check (mf X Y f)
+
+#check mf.I
+#check mf.e
+#check mf.m
+#check mf.fac
+
+
+
+
+
+
+
+
+
+
 
 
 
 -- underlying discrete space of S
-
-
--- the projection map Y ⟶ S in TopCat
-variable (S : DiscreteQuotient Y)
-#check (S.proj : Y ⟶ (TopologicalSpace S).toTopCat)
-
-
--- exc 1: define the composite map X ⟶ S
-def g : X ⟶ T := S.proj ∘ f
 
 
 
@@ -142,5 +185,3 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   intro X Y f g h
   -- write
   sorry
-
-end LightProfinite
