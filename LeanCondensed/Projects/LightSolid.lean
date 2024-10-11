@@ -63,7 +63,8 @@ end MonoidalClosed
 
 namespace LightProfinite
 
-instance (S : LightProfinite.{u}) : Injective S := sorry
+-- nonempty light profinite spaces are injective in the category of light profinite spaces
+instance (S : LightProfinite.{u}) [Nonempty S] : Injective S := sorry
 
 def shift : ℕ∪{∞} ⟶ ℕ∪{∞} where
   toFun

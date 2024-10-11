@@ -19,6 +19,17 @@ universe u
 
 open CategoryTheory LightProfinite OnePoint Limits
 
+/- given continuous map f : X → Y of profinite spaces,
+  with Y = lim Y_i the canonical diagram of Y,
+  produce a diagram of X with X_i = im(X → Y → Y_i)
+  and a map X → lim X_i compatible with f -/
+
+def diagram_of_injection {X Y : Profinite.{u}} (f : X ⟶ Y) :
+    DiscreteQuotient Y ⥤ FintypeCat.{u} where
+  obj Z := (Y.fintypeDiagram.obj Z) -- this is not yet what we want; take image!
+  map Z₁ Z₂ g := sorry
+
+/- if moreover f is injective, then the map X → lim X_i is an iso -/
 
 
 
