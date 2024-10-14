@@ -2,7 +2,9 @@
 Authors: Lenny Taelman
 -/
 import Mathlib.CategoryTheory.Preadditive.Injective
+import Mathlib.Topology.Separation
 import LeanCondensed.Mathlib.Condensed.Light.Limits
+
 /-!
 
 # Project: show that non-empty light profinite spaces are injective in all profinite spaces
@@ -11,34 +13,55 @@ This is used in particular in the proof the the null sequence module is projecti
 in light abelian condensed sets.
 
 -/
+
 noncomputable section
 
 universe u
 
-open CategoryTheory LightProfinite Limits
+open CategoryTheory LightProfinite Profinite Limits Topology
 
 -- SCRATCHPAD START
 
-/-
-  given F,G : I ⟶ Type and F ⟶ G,
-  prouce factorization F ⟶ im(F ⟶ G) ⟶ G
-  and induced maps on limits
--/
+-- some point-set topology first
+
+-- let X be a profinite topological space
+
+variable (X : Type u) [TopologicalSpace X] [CompactSpace X] [T2Space X] [TotallyDisconnectedSpace X]
 
 
-/-
-  apply to F = cst X, G st lim G = Y.diagram and f : X ⟶ Y in Profinite
--/
+-- crucial step: disjoint closed subsets in a profinite space can be separated by clopens
+
+lemma clopen_separation (Y Z : Set X)
+    (hY : IsClosed Y) (hZ : IsClosed Z) (hYZ : Y ∩ Z = ∅) :
+    ∃ C : Set X, IsClopen C ∧ Y ⊆ C ∧ Z ⊆ Cᶜ := by
+  have hZc : IsOpen Zᶜ := by rw [isOpen_compl_iff]; exact hZ
+  -- the complement Zᶜ can be covered by clopen sets Cx
+  have h : ∀ x : Subtype Zᶜ, ∃ Cx : Set X, IsClopen Cx ∧ x.val ∈ Cx ∧ Cx ⊆ Zᶜ := by
+    intro x
+    exact compact_exists_isClopen_in_isOpen hZc x.property
+  -- choose such Cx for every x in Zᶜ
+  choose Cx hCx using h
+  -- together with the complement of Y we get an open cover of X
+  have h2 : (Set.iUnion Cx) ∪ Y = Set.univ := by
+    ext x
+    constructor
+    · tauto
+    · intro hx
 
 
-/-
-  if f is injective, then X ⟶ im is limit cone
--/
+      sorry
+
+  -- since X is compact, there is a finite subcover
+
+  sorry
+
+
+-- version with finitely many closed sets
 
 
 
+-- can now prove key extension lemma
 
--- key extension lemma in topology
 lemma to_discrete_lifts_along_injective_profinite
   (S : Type u) [TopologicalSpace S] [DiscreteTopology S] [Nonempty S]
   (X Y : Profinite.{u}) (f : X → Y) (f_cont: Continuous f) (f_inj: Function.Injective f)
