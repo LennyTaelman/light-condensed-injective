@@ -29,27 +29,41 @@ open CategoryTheory LightProfinite Profinite Limits Topology
 variable (X : Type u) [TopologicalSpace X] [CompactSpace X] [T2Space X] [TotallyDisconnectedSpace X]
 
 
+open Classical
+
+
 -- crucial step: disjoint closed subsets in a profinite space can be separated by clopens
 
 lemma clopen_separation (Y Z : Set X)
     (hY : IsClosed Y) (hZ : IsClosed Z) (hYZ : Y ∩ Z = ∅) :
     ∃ C : Set X, IsClopen C ∧ Y ⊆ C ∧ Z ⊆ Cᶜ := by
-  have hZc : IsOpen Zᶜ := by rw [isOpen_compl_iff]; exact hZ
+  have Zc_open : IsOpen Zᶜ := by rw [isOpen_compl_iff]; exact hZ
   -- the complement Zᶜ can be covered by clopen sets Cx
-  have h : ∀ x : Subtype Zᶜ, ∃ Cx : Set X, IsClopen Cx ∧ x.val ∈ Cx ∧ Cx ⊆ Zᶜ := by
+  have h : ∀ x : X,  x ∈ Zᶜ → (∃ Cx : Set X, IsClopen Cx ∧ x ∈ Cx ∧ Cx ⊆ Zᶜ) := by
     intro x
-    exact compact_exists_isClopen_in_isOpen hZc x.property
-  -- choose such Cx for every x in Zᶜ
-  choose Cx hCx using h
-  -- together with the complement of Y we get an open cover of X
-  have h2 : (Set.iUnion Cx) ∪ Y = Set.univ := by
+    exact compact_exists_isClopen_in_isOpen Zc_open
+  -- produce an open cover
+  let I : Type u := Subtype Zᶜ ⊕ PUnit
+  let U : I → Set X
+    | Sum.inl ⟨x, hx⟩ => Classical.choice (nonempty_of_exists (h x hx))
+    | Sum.inr _ => Yᶜ
+  -- prove that it is a cover
+  have h2 : (⋃ i, U i) = Set.univ := by
     ext x
     constructor
     · tauto
     · intro hx
+      by_cases h : x ∈ Z
+      · apply Set.mem_iUnion.2
+        use Sum.inr PUnit.unit
+        dsimp [U]
+        simp
+
+        intro h2
 
 
-      sorry
+        sorry
+      · sorry
 
   -- since X is compact, there is a finite subcover
 
