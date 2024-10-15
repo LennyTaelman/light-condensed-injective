@@ -29,45 +29,65 @@ open CategoryTheory LightProfinite Profinite Limits Topology
 variable (X : Type u) [TopologicalSpace X] [CompactSpace X] [T2Space X] [TotallyDisconnectedSpace X]
 
 
-open Classical
-
-
 -- crucial step: disjoint closed subsets in a profinite space can be separated by clopens
 
-lemma clopen_separation (Y Z : Set X)
-    (hY : IsClosed Y) (hZ : IsClosed Z) (hYZ : Y ∩ Z = ∅) :
-    ∃ C : Set X, IsClopen C ∧ Y ⊆ C ∧ Z ⊆ Cᶜ := by
-  have Zc_open : IsOpen Zᶜ := by rw [isOpen_compl_iff]; exact hZ
-  -- the complement Zᶜ can be covered by clopen sets Cx
-  have h : ∀ x : X,  x ∈ Zᶜ → (∃ Cx : Set X, IsClopen Cx ∧ x ∈ Cx ∧ Cx ⊆ Zᶜ) := by
-    intro x
-    exact compact_exists_isClopen_in_isOpen Zc_open
-  -- produce an open cover
-  let I : Type u := Subtype Zᶜ ⊕ PUnit
-  let U : I → Set X
-    | Sum.inl ⟨x, hx⟩ => Classical.choice (nonempty_of_exists (h x hx))
-    | Sum.inr _ => Yᶜ
-  -- prove that it is a cover
-  have h2 : (⋃ i, U i) = Set.univ := by
-    ext x
-    constructor
-    · tauto
-    · intro hx
-      by_cases h : x ∈ Z
-      · apply Set.mem_iUnion.2
-        use Sum.inr PUnit.unit
-        dsimp [U]
-        simp
-
-        intro h2
-
-
-        sorry
-      · sorry
-
-  -- since X is compact, there is a finite subcover
+lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z ⊆ U) :
+    ∃ C : Set X, IsClopen C ∧ Z ⊆ C ∧ C ⊆ U := by
+  -- every z ∈ Z has clopen nbhd Vz z ⊆ U
+  have h_clopen_nbhd : ∀ z ∈ Z, ∃ V : Set X, IsClopen V ∧ z ∈ V ∧ V ⊆ U := by
+    intro z hz
+    exact compact_exists_isClopen_in_isOpen hU (hZU hz)
+  choose V hV using h_clopen_nbhd
+  let Vz : Z → Set X := fun z ↦ V z.val z.property
+  -- the V z cover Z
+  have h_cover : Z ⊆ Set.iUnion Vz := by
+    intro z hz
+    rw [Set.mem_iUnion]
+    use ⟨z, hz⟩
+    exact (hV z hz).2.1
+  -- the V z are open
+  have h_open : ∀ z : Subtype Z, IsOpen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1.2
+  -- Z is compact
+  have h_compact : IsCompact Z := IsClosed.isCompact hZ
+  -- there is a finite subcover
+  -- have h_fin : ∃ I : Finset Z, Z ⊆ Set.iUnion (Vz ∘ Subtype.val) := by sorry
 
   sorry
+
+
+
+
+
+
+
+
+
+
+
+
+-- lemma clopen_separation (Y Z : Set X)
+--     (hY : IsClosed Y) (hZ : IsClosed Z) (hYZ : Y ∩ Z = ∅) :
+--     ∃ C : Set X, IsClopen C ∧ Y ⊆ C ∧ Z ⊆ Cᶜ := by
+--   have hZc : IsOpen Zᶜ := by rw [isOpen_compl_iff]; exact hZ
+--   -- the complement Zᶜ can be covered by clopen sets Cx
+--   have h : ∀ x : Subtype Zᶜ, ∃ Cx : Set X, IsClopen Cx ∧ x.val ∈ Cx ∧ Cx ⊆ Zᶜ := by
+--     intro x
+--     exact compact_exists_isClopen_in_isOpen hZc x.property
+--   -- choose such Cx for every x in Zᶜ
+--   choose Cx hCx using h
+--   -- together with the complement of Y we get an open cover of X
+--   have h2 : (Set.iUnion Cx) ∪ Yᶜ = Set.univ := by
+--     ext x
+--     constructor
+--     · tauto
+--     · intro hx
+--       by_cases hYx : x ∈ Y
+--       · left
+
+--   -- since X is compact, there is a finite subcover
+
+--   sorry
+
 
 
 -- version with finitely many closed sets
