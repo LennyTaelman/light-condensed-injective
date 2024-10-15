@@ -99,13 +99,6 @@ lemma fin_clopen_separation (I : Type) [Finite I] (Z : I → Set X)
 
 
 
-    -- intro i
-    -- refine Set.subset_compl_comm.mp ?_
-    -- intro z
-    -- rw [Set.mem_compl]
-    -- exact Set.not_mem_of_mem_compl
-
-
 
 
   sorry
