@@ -64,10 +64,56 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
 
 
 
+
+
+-- perhaps do finite version first
+lemma fin_clopen_separation (I : Type) [Finite I] (Z : I → Set X)
+    (h_closed : ∀ i, IsClosed (Z i))
+    (h_disj : ∀ i j, i ≠ j → (Z i) ∩ (Z j) = ∅ ) :
+    ∃ C : I → Set X, ∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ ∀ j ≠ i, C i ∩ Z j = ∅ := by
+  let compl : I → Type := fun i ↦ {j : I // j ≠ i}
+  have h_compl : ∀ i, Finite (compl i) := by
+    intro i
+    exact Set.toFinite _
+  let Z' : I → Set X := fun i ↦ ⋃ j : {j : I // j ≠ i}, Z j
+  let U : I → Set X := fun i ↦ (Z' i)ᶜ
+  have hZ' : ∀ i, IsClosed (Z' i) := by
+    intro i
+    refine isClosed_iUnion_of_finite ?h
+    intro j
+    exact h_closed j.1
+  have hU : ∀ i, IsOpen (U i) := fun i ↦ IsClosed.isOpen_compl
+  have hZU : ∀ i, Z i ⊆ U i := by
+    intro i z hz
+    apply Set.mem_compl
+    unfold Z'
+    rw [Set.mem_iUnion]
+    push_neg
+    intro j
+    have hd := h_disj j.val i j.property
+    intro h2
+    have h3 : z ∈ Z j.val ∩ Z i := ⟨ h2, hz ⟩
+    simp_all only [ne_eq, Set.compl_iUnion, Set.mem_empty_iff_false, compl, Z', U]
+  -- now can apply previous lemma
+
+
+
+
+    -- intro i
+    -- refine Set.subset_compl_comm.mp ?_
+    -- intro z
+    -- rw [Set.mem_compl]
+    -- exact Set.not_mem_of_mem_compl
+
+
+
+
+  sorry
+
 -- can now prove key extension lemma for functions to nonempty finite sets
 
 lemma to_discrete_lifts_along_injective_profinite
-  (S : Type u) [TopologicalSpace S] [DiscreteTopology S] [Nonempty S] [Finite S]
+  (S : Type u) [TopologicalSpace S] [DiscreteTopology S] [Nonempty S] [fin : Finite S]
   (X Y : Profinite.{u}) (f : X → Y) (f_cont: Continuous f) (f_inj: Function.Injective f)
   (g : X → S) (g_cont : Continuous g) :
   ∃ h : Y → S, (h ∘ f = g) ∧ (Continuous h) := by
@@ -76,9 +122,21 @@ lemma to_discrete_lifts_along_injective_profinite
   have hZ : ∀ s, IsClosed (Z s) := by
     intro s
     apply IsClosed.preimage g_cont isClosed_singleton
-  -- let U s be the complememnt of all the  Z t with t ≠ s
-
-
+  -- let Z' s be the union of all the  Z t with t ≠ s
+  let Z' : S → Set X := fun s ↦ ⋃ t ≠ s, Z t
+  have hZ' : ∀ s, IsClosed (Z' s) := by
+    intro s
+    refine Set.Finite.isClosed_biUnion ?hs fun i a ↦ hZ i
+    exact Set.toFinite fun t ↦ t = s → False
+  -- let U s be the complement of Z' s
+  let U : S → Set X := fun s ↦ (Z' s)ᶜ
+  have hU : ∀ s, IsOpen (U s) := by
+    intro s
+    exact IsClosed.isOpen_compl
+  have hZU : ∀ s, Z s ⊆ U s := by
+    intro s
+    refine Set.subset_compl_comm.mp ?_
+    intro z
 
   sorry
   -- write Y as lim Y_i with Y_i discrete
