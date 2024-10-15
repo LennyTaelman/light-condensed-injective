@@ -45,11 +45,37 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
     rw [Set.mem_iUnion]
     use ⟨z, hz⟩
     exact (hV z hz).2.1
-  -- the V z are open
+  -- the V z are open and closed
   have h_open : ∀ z : Subtype Z, IsOpen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1.2
+  have h_clopen : ∀ z : Subtype Z, IsClopen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1
   -- Z is compact
-  have h_compact : IsCompact Z := IsClosed.isCompact hZ
+  have h_compact := IsClosed.isCompact hZ
   -- there is a finite subcover
+  choose I hI using IsCompact.elim_finite_subcover h_compact Vz h_open h_cover
+  -- instance : Finite I := by sorry
+  -- let C be the union of the V i
+  let C := ⋃ i ∈ I, Vz i
+  -- C is clopen
+  have h_C_clopen : IsClopen C := by
+    apply Set.Finite.isClopen_biUnion
+    · exact Finset.finite_toSet I
+    · intro i _
+      exact h_clopen i
+  -- C ⊆ U
+  have h_CU : C ⊆ U := by
+    apply Set.iUnion_subset
+    intro i _
+    sorry
+
+
+  sorry
+
+
+
+
+
+
+
   -- have h_fin : ∃ I : Finset Z, Z ⊆ Set.iUnion (Vz ∘ Subtype.val) := by sorry
 
   sorry
