@@ -24,7 +24,7 @@ open CategoryTheory LightProfinite Profinite Limits Topology
 variable (X : Type u) [TopologicalSpace X] [CompactSpace X] [T2Space X] [TotallyDisconnectedSpace X]
 
 
--- For every closed ⊆ open in a profinite, there is intermediate clopen
+-- For every closed ⊆ open in a profinite, there is an intermediate clopen
 
 lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z ⊆ U) :
     ∃ C : Set X, IsClopen C ∧ Z ⊆ C ∧ C ⊆ U := by
@@ -64,7 +64,6 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
 
 
 
-open Finset
 
 
 /- induction step: -- pick Zn ⊆ Cn ⊆ U disjoint from Zi with i lt n,
@@ -72,17 +71,20 @@ open Finset
   perhaps better to formulate with extra U containing all the Zn?
 
 -/
-lemma fin_clopen_separation (n : ℕ) (Z : range n → Set X) (U : Set X)
+lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (h_closed : ∀ i, IsClosed (Z i)) (h_disj : ∀ i j, i ≠ j → (Z i) ∩ (Z j) = ∅ )
     (hU : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
-    ∃ C : range n → Set X, ∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U ∧
+    ∃ C : Fin n → Set X, ∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U ∧
     ∀ i j, i ≠ j → C i ∩ C j = ∅ := by
   induction' n with n ih
-  · use fun i => ∅ -- can use junk, codomain is empty
-    intro i
-    exfalso
-    aesop
-  ·
+  · use fun i => ∅ -- can use junk, domain is empty
+    intro i; apply Fin.elim0 i
+  · -- pick Cn using sandwich lemma
+    have U' : Set X := U \ ( ⋃ (i : Fin n), Z i)
+    have hU' : IsOpen U' := by sorry
+    choose Cn hcn using clopen_sandwich X (Z n) U (h_closed n) hU (hZU n)
+
+
 
 
     sorry
