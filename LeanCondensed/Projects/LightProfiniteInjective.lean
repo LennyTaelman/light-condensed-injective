@@ -64,10 +64,34 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
 
 
 
+open Finset
+
+
+/- induction step: -- pick Zn ⊆ Cn ⊆ U disjoint from Zi with i lt n,
+  then apply induction hypothesis to Zi ⊆ X \ Cn
+  perhaps better to formulate with extra U containing all the Zn?
+
+-/
+lemma fin_clopen_separation (n : ℕ) (Z : range n → Set X) (U : Set X)
+    (h_closed : ∀ i, IsClosed (Z i)) (h_disj : ∀ i j, i ≠ j → (Z i) ∩ (Z j) = ∅ )
+    (hU : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
+    ∃ C : range n → Set X, ∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U ∧
+    ∀ i j, i ≠ j → C i ∩ C j = ∅ := by
+  induction' n with n ih
+  · use fun i => ∅ -- can use junk, codomain is empty
+    intro i
+    exfalso
+    aesop
+  ·
+
+
+    sorry
+
+
 
 
 -- perhaps do finite version first
-lemma fin_clopen_separation (I : Type) [Finite I] (Z : I → Set X)
+lemma fin_clopen_separation' (I : Type) [h_fin: Finite I] (Z : I → Set X)
     (h_closed : ∀ i, IsClosed (Z i))
     (h_disj : ∀ i j, i ≠ j → (Z i) ∩ (Z j) = ∅ ) :
     ∃ C : I → Set X, ∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ ∀ j ≠ i, C i ∩ Z j = ∅ := by
@@ -126,12 +150,7 @@ lemma to_discrete_lifts_along_injective_profinite
   have hU : ∀ s, IsOpen (U s) := by
     intro s
     exact IsClosed.isOpen_compl
-  have hZU : ∀ s, Z s ⊆ U s := by
-    intro s
-    refine Set.subset_compl_comm.mp ?_
-    intro z
 
-  sorry
   -- write Y as lim Y_i with Y_i discrete
 
 
