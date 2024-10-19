@@ -79,10 +79,14 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
   induction' n with n ih
   · use fun i => ∅ -- can use junk, domain is empty
     intro i; apply Fin.elim0 i
-  · -- pick Cn using sandwich lemma
-    have U' : Set X := U \ ( ⋃ (i : Fin n), Z i)
-    have hU' : IsOpen U' := by sorry
-    choose Cn hcn using clopen_sandwich X (Z n) U (h_closed n) hU (hZU n)
+  · -- let Z' be the restriction to Fin n
+    let Z' : Fin n → Set X := fun i ↦ Z i
+    have h_closed' : ∀ i, IsClosed (Z' i) := by tauto
+    -- pick Zn ⊆ Cn, disjoint from other Zi using sandwich lemma
+    let U' : Set X  := U \ ( ⋃ (i : Fin n), Z' i)
+    have hU' : IsOpen U' := IsOpen.sdiff hU (isClosed_iUnion_of_finite h_closed')
+    have hZnU' : Z n ⊆ U' := by sorry
+    choose Cn hcn using clopen_sandwich X (Z n) U' (h_closed n) hU' (hZnU')
 
 
 
