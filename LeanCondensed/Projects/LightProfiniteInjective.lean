@@ -63,6 +63,7 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
   exact ⟨C, h_C_clopen, by tauto, by aesop⟩
 
 
+/- let's play a bit with Fin n and its embedding in Fin n+1 first -/
 
 
 
@@ -76,17 +77,49 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (hU : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
     ∃ C : Fin n → Set X, ∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U ∧
     ∀ i j, i ≠ j → C i ∩ C j = ∅ := by
-  induction' n with n ih
+  induction' n with n ih generalizing U
   · use fun i => ∅ -- can use junk, domain is empty
     intro i; apply Fin.elim0 i
   · -- let Z' be the restriction to Fin n
     let Z' : Fin n → Set X := fun i ↦ Z i
     have h_closed' : ∀ i, IsClosed (Z' i) := by tauto
+    have h_disj' : ∀ i j, i ≠ j → (Z' i) ∩ (Z' j) = ∅ := by aesop
+    have h_disj'' : ∀ i, (Z' i) ∩ (Z n) = ∅ := by
+      unfold Z'
+      intro i
+      sorry
     -- pick Zn ⊆ Cn, disjoint from other Zi using sandwich lemma
     let U' : Set X  := U \ ( ⋃ (i : Fin n), Z' i)
     have hU' : IsOpen U' := IsOpen.sdiff hU (isClosed_iUnion_of_finite h_closed')
-    have hZnU' : Z n ⊆ U' := by sorry
+    have hZnU' : Z n ⊆ U' := by
+      refine Set.subset_diff.mpr ?_
+      constructor
+      · exact hZU n
+      · apply Set.disjoint_iUnion_right.2
+        intro i
+        have h_in : Z n ∩ Z' i = ∅ := by
+          sorry
+        exact Set.disjoint_iff_inter_eq_empty.mpr h_in
+
     choose Cn hcn using clopen_sandwich X (Z n) U' (h_closed n) hU' (hZnU')
+    let U'' : Set X := Cnᶜ
+    have Cn_closed : IsClosed (Cn) := hcn.1.1
+    have U''_open : IsOpen U'' := IsClosed.isOpen_compl
+    have hZU'' : ∀ i : Fin n, Z' i ⊆ U'' := by
+      intro i
+      apply Disjoint.subset_compl_right
+      -- use that Cn is contained in U' by construction
+      have hCnU' : Cn ⊆ U' := hcn.2.2
+
+
+      sorry
+
+
+    -- now use induction hypothesis on Z' and U''
+    choose C' hC' using ih Z' U'' h_closed' h_disj' U''_open hZU''
+
+
+
 
 
 
