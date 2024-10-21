@@ -56,16 +56,19 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
   exact ⟨C, h_C_clopen, by tauto, by aesop⟩
 
 
+#check Fin.induction
 
 
 lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i ≠ j → (Z i) ∩ (Z j) = ∅ )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
-    ∃ C : Fin n → Set X, ∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U ∧
+    ∃ C : Fin n → Set X, (∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U) ∧
     ∀ i j, i ≠ j → C i ∩ C j = ∅ := by
   induction' n with n ih generalizing U
   · use fun i => ∅ -- can use junk, domain is empty
-    intro i; apply Fin.elim0 i
+    constructor
+    · intro i; apply Fin.elim0 i
+    · intro i _; apply Fin.elim0 i
   · -- let Z' be the restriction along succ : Fin n → Fin (n+1)
     let Z' : Fin n → Set X := fun i ↦ Z (Fin.succ i)
     have Z'_closed : ∀ i, IsClosed (Z' i) := fun i ↦ Z_closed (Fin.succ i)
@@ -99,11 +102,25 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     -- use induction hypothesis to choose Z i ⊆ Ci ⊆ W clopen and mutually disjoint for i>0
     choose Ci hCi using ih Z' W Z'_closed Z'_disj W_open Z'_in_W
     -- now define C succ i = Ci i and C 0 = C0
-    -- bah, disjointness might be a messy case distinction. Maybe change all ≠ to < ???
+    let C : Fin (n+1) → Set X := Fin.cases C0 Ci
+    use C
+    constructor
+    · intro i
+      by_cases h : i = 0
+      · rw [h]
+        exact ⟨hC0.1, hC0.2.1, Set.Subset.trans hC0.2.2 Set.diff_subset⟩
+      · -- i ne 0, so i = succ j for some j
+        let j := i.pred h
+        have h_succ : i = Fin.succ j := by exact (Fin.pred_eq_iff_eq_succ h).mp rfl
+        rw [h_succ]
+        unfold C
+        dsimp
 
+        sorry
 
-    sorry
-
+    · intro i j
+      -- annoying case distinction; maybe change ≠ to < everywhere?
+      sorry
 
 
 
