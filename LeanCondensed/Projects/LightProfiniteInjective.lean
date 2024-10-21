@@ -65,7 +65,10 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
 
 /- let's play a bit with Fin n and its embedding in Fin n+1 first -/
 
+variable (n : ℕ)
 
+lemma test (i : Fin n) : (i : Fin (n+1)) ≠ n :=
+  Fin.ne_of_lt (Fin.natCast_strictMono (Nat.le_refl n) i.isLt)
 
 /- induction step: -- pick Zn ⊆ Cn ⊆ U disjoint from Zi with i lt n,
   then apply induction hypothesis to Zi ⊆ X \ Cn
@@ -84,11 +87,11 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     let Z' : Fin n → Set X := fun i ↦ Z i
     have h_closed' : ∀ i, IsClosed (Z' i) := by tauto
     have h_disj' : ∀ i j, i ≠ j → (Z' i) ∩ (Z' j) = ∅ := by aesop
-    have h_disj'' : ∀ i, (Z' i) ∩ (Z n) = ∅ := by
-      unfold Z'
+    have h_disj'' : ∀ i,  (Z n) ∩ (Z' i) = ∅ := by
       intro i
-      sorry
-    -- pick Zn ⊆ Cn, disjoint from other Zi using sandwich lemma
+      apply h_disj
+      exact Fin.ne_of_gt (Fin.natCast_strictMono (Nat.le_refl n) i.isLt )
+    -- U' contains Zn and is disjoint from the other Zi
     let U' : Set X  := U \ ( ⋃ (i : Fin n), Z' i)
     have hU' : IsOpen U' := IsOpen.sdiff hU (isClosed_iUnion_of_finite h_closed')
     have hZnU' : Z n ⊆ U' := by
@@ -97,19 +100,18 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
       · exact hZU n
       · apply Set.disjoint_iUnion_right.2
         intro i
-        have h_in : Z n ∩ Z' i = ∅ := by
-          sorry
-        exact Set.disjoint_iff_inter_eq_empty.mpr h_in
-
+        exact Set.disjoint_iff_inter_eq_empty.mpr (h_disj'' i)
+    -- pick Zn ⊆ Cn ⊆ U'
     choose Cn hcn using clopen_sandwich X (Z n) U' (h_closed n) hU' (hZnU')
     let U'' : Set X := Cnᶜ
     have Cn_closed : IsClosed (Cn) := hcn.1.1
     have U''_open : IsOpen U'' := IsClosed.isOpen_compl
-    have hZU'' : ∀ i : Fin n, Z' i ⊆ U'' := by
+    have hZU'' : ∀ i : Fin n, Z' i ⊆ U'' := by --- uh FALSE??
       intro i
       apply Disjoint.subset_compl_right
       -- use that Cn is contained in U' by construction
       have hCnU' : Cn ⊆ U' := hcn.2.2
+
 
 
       sorry
