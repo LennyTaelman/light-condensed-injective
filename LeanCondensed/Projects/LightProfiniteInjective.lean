@@ -18,7 +18,7 @@ noncomputable section
 
 universe u
 
-open CategoryTheory LightProfinite Profinite Limits Topology
+open CategoryTheory LightProfinite Profinite Limits Topology Set
 
 
 variable (X : Type u) [TopologicalSpace X] [CompactSpace X] [T2Space X] [TotallyDisconnectedSpace X]
@@ -35,25 +35,22 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
   choose V hV using h_clopen_nbhd
   let Vz : Z → Set X := fun z ↦ V z.val z.property
   -- the V z cover Z
-  have h_cover : Z ⊆ Set.iUnion Vz := by
-    intro z hz
-    rw [Set.mem_iUnion]
-    use ⟨z, hz⟩
-    exact (hV z hz).2.1
+  have V_cover : Z ⊆ iUnion Vz := fun z hz ↦ mem_iUnion.mpr ⟨⟨z, hz⟩, (hV z hz).2.1⟩
   -- the V z are open and closed
-  have h_open : ∀ z : Subtype Z, IsOpen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1.2
-  have h_clopen : ∀ z : Subtype Z, IsClopen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1
+  have V_open : ∀ z : Subtype Z, IsOpen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1.2
+  have V_clopen : ∀ z : Subtype Z, IsClopen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1
   -- there is a finite subcover, let C be its union
-  have h_compact := IsClosed.isCompact hZ
-  choose I hI using IsCompact.elim_finite_subcover h_compact Vz h_open h_cover
+  have Z_compact := IsClosed.isCompact hZ
+  choose I hI using IsCompact.elim_finite_subcover Z_compact Vz V_open V_cover
   let C := ⋃ (i ∈ I), Vz i
   -- C is clopen
-  have h_C_clopen : IsClopen C := by
-    apply Set.Finite.isClopen_biUnion
+  have C_clopen : IsClopen C := by
+    apply Finite.isClopen_biUnion
     · exact Finset.finite_toSet I
     · intro i _
-      exact h_clopen i
-  exact ⟨C, h_C_clopen, by tauto, by aesop⟩
+      exact V_clopen i
+  -- this C does the job
+  exact ⟨C, C_clopen, by tauto, by aesop⟩
 
 
 /- every finite family of disjoint closed contained in an open U can
@@ -61,10 +58,10 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
 -/
 
 lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
-    (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → (Z i) ∩ (Z j) = ∅ )
+    (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
     ∃ C : Fin n → Set X, (∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U) ∧
-    ∀ i j, i < j → C i ∩ C j = ∅ := by
+    ∀ i j, i < j → Disjoint (C i) (C j) := by
   induction' n with n ih generalizing U
   · use fun i => ∅ -- can use junk, domain is empty
     constructor
@@ -73,38 +70,39 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
   · -- let Z' be the restriction along succ : Fin n → Fin (n+1)
     let Z' : Fin n → Set X := fun i ↦ Z (Fin.succ i)
     have Z'_closed : ∀ i, IsClosed (Z' i) := fun i ↦ Z_closed (Fin.succ i)
-    have Z'_disj : ∀ i j, i < j → (Z' i) ∩ (Z' j) = ∅ := fun i j hij =>
+    have Z'_disj : ∀ i j, i < j → Disjoint (Z' i) (Z' j)  := fun i j hij =>
       Z_disj (Fin.succ i) (Fin.succ j) (Fin.succ_lt_succ_iff.mpr hij)
     -- find Z0 ⊆ V ⊆ U disjoint from the Zi with i>0
     let V : Set X  := U \ (⋃ (i : Fin n), Z' i)
     have V_open : IsOpen V := IsOpen.sdiff U_open (isClosed_iUnion_of_finite Z'_closed)
-    have Z0_in_V : Z 0 ⊆ V := by
+    have Z0_subset_V : Z 0 ⊆ V := by
       apply Set.subset_diff.mpr
       constructor
       · exact hZU 0
-      · apply Set.disjoint_iUnion_right.mpr
-        intro i
-        apply Set.disjoint_iff_inter_eq_empty.mpr
-        apply Z_disj
-        exact Fin.succ_pos i
-    have V_disj_Z' : ∀ i : Fin n, Disjoint V (Z' i) := by
+      · exact disjoint_iUnion_right.mpr (fun i ↦ Z_disj 0 (Fin.succ i) (Fin.succ_pos i))
+    have Z'_disj_V : ∀ i : Fin n, Disjoint (Z' i) V := by
       intro i
-      have h : Z i.succ ⊆ ⋃ (i : Fin n), Z (Fin.succ i) := Set.subset_iUnion_of_subset i fun ⦃a⦄ a ↦ a
-      exact Disjoint.mono_right h Set.disjoint_sdiff_left
+      have h : Z i.succ ⊆ ⋃ (i : Fin n), Z (Fin.succ i) := subset_iUnion_of_subset i fun ⦃a⦄ a ↦ a
+      sorry
+      -- exact Disjoint.mono_left h disjoint_sdiff_left
     -- pick clopen Z0 ⊆ C0 ⊆ V
-    choose C0 hC0 using clopen_sandwich X (Z 0) V (Z_closed 0) V_open Z0_in_V
-    -- now let W be the complement of C0,
-    let W : Set X := C0ᶜ
-    have W_open : IsOpen W := isOpen_compl_iff.mpr hC0.1.1
-    have Z'_in_W : ∀ i : Fin n, Z' i ⊆ W := by
+    choose C0 hC0 using clopen_sandwich X (Z 0) V (Z_closed 0) V_open Z0_subset_V
+    -- now let W be the complement of C0
+    let W : Set X := U \ C0
+    have W_open : IsOpen W := IsOpen.sdiff U_open hC0.1.1
+    have Z'_subset_W : ∀ i : Fin n, Z' i ⊆ W := by
       intro i
-      apply Disjoint.subset_compl_left
-      exact Disjoint.mono_left hC0.2.2 (V_disj_Z' i)
+      rw [subset_diff]
+      constructor
+      · exact hZU (Fin.succ i)
+      · exact Disjoint.mono_right hC0.2.2 (Z'_disj_V i)
+    have W_subset_U : W ⊆ U := Set.diff_subset
     -- use induction hypothesis to choose Z i ⊆ Ci ⊆ W clopen and mutually disjoint for i>0
-    choose Ci hCi using ih Z' W Z'_closed Z'_disj W_open Z'_in_W
-    -- now define C succ i = Ci i and C 0 = C0
-    let C : Fin (n+1) → Set X := Fin.cases C0 Ci
+    choose C' hC' using ih Z' W Z'_closed Z'_disj W_open Z'_subset_W
+    -- desired C given by C0 = C0 and C (succ i) = C' i
+    let C : Fin (n+1) → Set X := Fin.cases C0 C'
     use C
+    -- verify
     constructor
     · intro i
       by_cases h : i = 0
@@ -116,12 +114,16 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
         rw [h_succ]
         unfold C
         dsimp
+        constructor
+        · exact (hC'.1 j).1
+        · constructor
+          · exact (hC'.1 j).2.1
+          · exact Set.Subset.trans (hC'.1 j).2.2 W_subset_U
+    · intro i j hij
+      by_cases h : i = 0
+      · sorry
+      · sorry
 
-        sorry
-
-    · intro i j
-      -- annoying case distinction; maybe change ≠ to < everywhere?
-      sorry
 
 
 
