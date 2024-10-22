@@ -57,17 +57,16 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
    be separated by disjoint clopens contained in U
 -/
 
+open Disjoint
+
 lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
     ∃ C : Fin n → Set X, (∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U) ∧
     ∀ i j, i < j → Disjoint (C i) (C j) := by
   induction' n with n ih generalizing U
-  · use fun i => ∅ -- can use junk, domain is empty
-    constructor
-    · intro i; apply Fin.elim0 i
-    · intro i _; apply Fin.elim0 i
-  · -- let Z' be the restriction along succ : Fin n → Fin (n+1)
+  · exact ⟨fun _ ↦ ∅, fun i ↦ Fin.elim0 i, fun i ↦ Fin.elim0 i ⟩
+  · -- for induction step, let Z' be the restriction of Z along succ : Fin n → Fin (n+1)
     let Z' : Fin n → Set X := fun i ↦ Z (Fin.succ i)
     have Z'_closed : ∀ i, IsClosed (Z' i) := fun i ↦ Z_closed (Fin.succ i)
     have Z'_disj : ∀ i j, i < j → Disjoint (Z' i) (Z' j)  := fun i j hij =>
@@ -82,9 +81,7 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
       · exact disjoint_iUnion_right.mpr (fun i ↦ Z_disj 0 (Fin.succ i) (Fin.succ_pos i))
     have Z'_disj_V : ∀ i : Fin n, Disjoint (Z' i) V := by
       intro i
-      have h : Z i.succ ⊆ ⋃ (i : Fin n), Z (Fin.succ i) := subset_iUnion_of_subset i fun ⦃a⦄ a ↦ a
-      sorry
-      -- exact Disjoint.mono_left h disjoint_sdiff_left
+      exact mono_left (subset_iUnion_of_subset i fun ⦃x⦄ hx ↦ hx) disjoint_sdiff_right
     -- pick clopen Z0 ⊆ C0 ⊆ V
     choose C0 hC0 using clopen_sandwich X (Z 0) V (Z_closed 0) V_open Z0_subset_V
     -- now let W be the complement of C0
@@ -93,36 +90,39 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     have Z'_subset_W : ∀ i : Fin n, Z' i ⊆ W := by
       intro i
       rw [subset_diff]
-      constructor
-      · exact hZU (Fin.succ i)
-      · exact Disjoint.mono_right hC0.2.2 (Z'_disj_V i)
-    have W_subset_U : W ⊆ U := diff_subset
+      exact ⟨hZU (Fin.succ i), mono_right hC0.2.2 (Z'_disj_V i)⟩
     -- use induction hypothesis to choose Z i ⊆ Ci ⊆ W clopen and mutually disjoint for i>0
     choose C' hC' using ih Z' W Z'_closed Z'_disj W_open Z'_subset_W
     -- desired C given by C0 = C0 and C (succ i) = C' i
     let C : Fin (n+1) → Set X := Fin.cases C0 C'
     use C
-    -- verify
     constructor
-    · intro i
+    · -- C i are clopen and Z i ⊆ C i ⊆ U
+      intro i
       by_cases h : i = 0
       · rw [h]
         exact ⟨hC0.1, hC0.2.1, Subset.trans hC0.2.2 Set.diff_subset⟩
-      · -- i ne 0, so i = succ j for some j
-        let j := i.pred h
-        have h_succ : i = Fin.succ j := by exact (Fin.pred_eq_iff_eq_succ h).mp rfl
+      · have h_succ : i = Fin.succ (i.pred h) := (Fin.pred_eq_iff_eq_succ h).mp rfl
         rw [h_succ]
-        unfold C
-        dsimp
-        constructor
-        · exact (hC'.1 j).1
-        · constructor
-          · exact (hC'.1 j).2.1
-          · exact Subset.trans (hC'.1 j).2.2 W_subset_U
-    · intro i j hij
+        exact ⟨(hC'.1 _).1, (hC'.1 _).2.1, Subset.trans (hC'.1 _).2.2 diff_subset⟩
+    · -- C i are pairwise disjoint
+      intro i j hij
       by_cases h : i = 0
-      · sorry
-      · sorry
+      · rw  [h]
+        rw [h] at hij
+        let j_pred := j.pred (Fin.pos_iff_ne_zero.mp hij)
+        have h_succ : j = Fin.succ j_pred := by exact (Fin.pred_eq_iff_eq_succ (Fin.pos_iff_ne_zero.mp hij)).mp rfl
+        rw [h_succ]
+        exact mono_right (hC'.1 j_pred).2.2 Set.disjoint_sdiff_right
+      · let i_pred := i.pred h
+        have hj : j ≠ 0 := Fin.ne_zero_of_lt hij
+        let j_pred := j.pred hj
+        have h_succ_i : i = Fin.succ i_pred := by exact (Fin.pred_eq_iff_eq_succ h).mp rfl
+        have h_succ_j : j = Fin.succ j_pred := by exact (Fin.pred_eq_iff_eq_succ hj).mp rfl
+        rw [h_succ_i, h_succ_j]
+        have hij_pred : i_pred < j_pred := Fin.pred_lt_pred_iff.mpr hij
+        exact hC'.2 i_pred j_pred hij_pred
+
 
 
 
