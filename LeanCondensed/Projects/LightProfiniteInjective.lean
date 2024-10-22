@@ -16,56 +16,48 @@ in light abelian condensed sets.
 
 noncomputable section
 
+
 universe u
-
-open CategoryTheory LightProfinite Profinite Limits Topology Set
-
-
 variable (X : Type u) [TopologicalSpace X] [CompactSpace X] [T2Space X] [TotallyDisconnectedSpace X]
 
+open Set
 
 -- For every closed ⊆ open in a profinite, there is an intermediate clopen
 
 lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z ⊆ U) :
     ∃ C : Set X, IsClopen C ∧ Z ⊆ C ∧ C ⊆ U := by
-  -- every z ∈ Z has clopen nbhd Vz z ⊆ U
-  have h_clopen_nbhd : ∀ z ∈ Z, ∃ V : Set X, IsClopen V ∧ z ∈ V ∧ V ⊆ U := by
-    intro z hz
-    exact compact_exists_isClopen_in_isOpen hU (hZU hz)
-  choose V hV using h_clopen_nbhd
-  let Vz : Z → Set X := fun z ↦ V z.val z.property
-  -- the V z cover Z
-  have V_cover : Z ⊆ iUnion Vz := fun z hz ↦ mem_iUnion.mpr ⟨⟨z, hz⟩, (hV z hz).2.1⟩
+  -- every z ∈ Z has clopen neighborhood V z ⊆ U
+  choose V hV using fun (z : Z) ↦ compact_exists_isClopen_in_isOpen hU (hZU z.property)
+  -- choose V hV using h_clopen_nbhd
+  have V_cover : Z ⊆ iUnion V := fun z hz ↦ mem_iUnion.mpr ⟨⟨z, hz⟩, (hV ⟨z, hz⟩).2.1⟩
   -- the V z are open and closed
-  have V_open : ∀ z : Subtype Z, IsOpen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1.2
-  have V_clopen : ∀ z : Subtype Z, IsClopen (Vz z) := fun ⟨z, hz⟩ ↦ (hV z hz).1
-  -- there is a finite subcover, let C be its union
+  have V_open : ∀ z : Subtype Z, IsOpen (V z) := fun z ↦ (hV z).1.2
+  have V_clopen : ∀ z : Subtype Z, IsClopen (V z) := fun z ↦ (hV z).1
+  -- there is a finite subcover, let C be its union; this does the job
   have Z_compact := IsClosed.isCompact hZ
-  choose I hI using IsCompact.elim_finite_subcover Z_compact Vz V_open V_cover
-  let C := ⋃ (i ∈ I), Vz i
-  -- C is clopen
-  have C_clopen : IsClopen C := by
-    apply Finite.isClopen_biUnion
-    · exact Finset.finite_toSet I
-    · intro i _
-      exact V_clopen i
-  -- this C does the job
-  exact ⟨C, C_clopen, by tauto, by aesop⟩
+  choose I hI using IsCompact.elim_finite_subcover Z_compact V V_open V_cover
+  let C := ⋃ (i ∈ I), V i
+  have C_clopen : IsClopen C := Finite.isClopen_biUnion (Finset.finite_toSet I)
+    (fun i _ ↦ V_clopen i)
+  have C_subset_U : C ⊆ U := by simp_all only [iUnion_subset_iff, C, implies_true]
+  exact ⟨C, C_clopen, hI, C_subset_U⟩
 
 
-/- every finite family of disjoint closed contained in an open U can
-   be separated by disjoint clopens contained in U
--/
 
 open Fin
 
-lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
+/- every finite family of disjoint closed subsets contained in an open U in
+  a profinite space can be separated by disjoint clopens contained in U
+-/
+
+lemma finite_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
     ∃ C : Fin n → Set X, (∀ i, IsClopen (C i)) ∧ (∀ i, Z i ⊆ C i) ∧ (∀ i, C i ⊆ U) ∧
     (∀ i j, i < j → Disjoint (C i) (C j)) := by
   induction n generalizing U
   case zero =>
+    -- base step is trivial, Fin 0 is empty
     exact ⟨λ _ ↦ ∅, elim0, λ i ↦ elim0 i, elim0, λ i ↦ elim0 i⟩
   case succ n ih =>
     -- let Z' be the restriction of Z along succ : Fin n → Fin (n+1)
@@ -133,10 +125,9 @@ lemma to_discrete_lifts_along_injective_profinite
     exact IsClosed.isOpen_compl
   sorry
 
-  -- write Y as lim Y_i with Y_i discrete
 
 
-
+open CategoryTheory
 
 -- this is the target theorem!
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
