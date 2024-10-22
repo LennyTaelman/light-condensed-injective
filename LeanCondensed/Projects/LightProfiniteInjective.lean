@@ -96,7 +96,7 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
       constructor
       · exact hZU (Fin.succ i)
       · exact Disjoint.mono_right hC0.2.2 (Z'_disj_V i)
-    have W_subset_U : W ⊆ U := Set.diff_subset
+    have W_subset_U : W ⊆ U := diff_subset
     -- use induction hypothesis to choose Z i ⊆ Ci ⊆ W clopen and mutually disjoint for i>0
     choose C' hC' using ih Z' W Z'_closed Z'_disj W_open Z'_subset_W
     -- desired C given by C0 = C0 and C (succ i) = C' i
@@ -107,7 +107,7 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     · intro i
       by_cases h : i = 0
       · rw [h]
-        exact ⟨hC0.1, hC0.2.1, Set.Subset.trans hC0.2.2 Set.diff_subset⟩
+        exact ⟨hC0.1, hC0.2.1, Subset.trans hC0.2.2 Set.diff_subset⟩
       · -- i ne 0, so i = succ j for some j
         let j := i.pred h
         have h_succ : i = Fin.succ j := by exact (Fin.pred_eq_iff_eq_succ h).mp rfl
@@ -118,7 +118,7 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
         · exact (hC'.1 j).1
         · constructor
           · exact (hC'.1 j).2.1
-          · exact Set.Subset.trans (hC'.1 j).2.2 W_subset_U
+          · exact Subset.trans (hC'.1 j).2.2 W_subset_U
     · intro i j hij
       by_cases h : i = 0
       · sorry
