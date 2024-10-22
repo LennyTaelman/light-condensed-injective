@@ -56,14 +56,15 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
   exact ⟨C, h_C_clopen, by tauto, by aesop⟩
 
 
-#check Fin.induction
-
+/- every finite family of disjoint closed contained in an open U can
+   be separated by disjoint clopens contained in U
+-/
 
 lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
-    (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i ≠ j → (Z i) ∩ (Z j) = ∅ )
+    (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → (Z i) ∩ (Z j) = ∅ )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
     ∃ C : Fin n → Set X, (∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U) ∧
-    ∀ i j, i ≠ j → C i ∩ C j = ∅ := by
+    ∀ i j, i < j → C i ∩ C j = ∅ := by
   induction' n with n ih generalizing U
   · use fun i => ∅ -- can use junk, domain is empty
     constructor
@@ -72,8 +73,8 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
   · -- let Z' be the restriction along succ : Fin n → Fin (n+1)
     let Z' : Fin n → Set X := fun i ↦ Z (Fin.succ i)
     have Z'_closed : ∀ i, IsClosed (Z' i) := fun i ↦ Z_closed (Fin.succ i)
-    have Z'_disj : ∀ i j, i ≠ j → (Z' i) ∩ (Z' j) = ∅ := fun i j hij =>
-      Z_disj (Fin.succ i) (Fin.succ j) (fun h ↦ hij (Fin.succ_inj.1 h))
+    have Z'_disj : ∀ i j, i < j → (Z' i) ∩ (Z' j) = ∅ := fun i j hij =>
+      Z_disj (Fin.succ i) (Fin.succ j) (Fin.succ_lt_succ_iff.mpr hij)
     -- find Z0 ⊆ V ⊆ U disjoint from the Zi with i>0
     let V : Set X  := U \ (⋃ (i : Fin n), Z' i)
     have V_open : IsOpen V := IsOpen.sdiff U_open (isClosed_iUnion_of_finite Z'_closed)
@@ -85,7 +86,7 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
         intro i
         apply Set.disjoint_iff_inter_eq_empty.mpr
         apply Z_disj
-        exact Ne.symm (Fin.succ_ne_zero i)
+        exact Fin.succ_pos i
     have V_disj_Z' : ∀ i : Fin n, Disjoint V (Z' i) := by
       intro i
       have h : Z i.succ ⊆ ⋃ (i : Fin n), Z (Fin.succ i) := Set.subset_iUnion_of_subset i fun ⦃a⦄ a ↦ a
