@@ -62,59 +62,47 @@ open Fin
 lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
-    ∃ C : Fin n → Set X, (∀ i, IsClopen (C i) ∧ Z i ⊆ C i ∧ C i ⊆ U) ∧
+    ∃ C : Fin n → Set X, (∀ i, IsClopen (C i)) ∧ (∀ i, Z i ⊆ C i) ∧ (∀ i, C i ⊆ U) ∧
     ∀ i j, i < j → Disjoint (C i) (C j) := by
   induction' n with n ih generalizing U
-  · exact ⟨fun _ ↦ ∅, fun i ↦ elim0 i, fun i ↦ elim0 i ⟩
+  · exact ⟨λ _ ↦ ∅, elim0, λ i ↦ elim0 i, elim0, λ i ↦ elim0 i⟩
   · -- for induction step, let Z' be the restriction of Z along succ : Fin n → Fin (n+1)
     let Z' : Fin n → Set X := fun i ↦ Z (succ i)
-    have Z'_closed : ∀ i, IsClosed (Z' i) := fun i ↦ Z_closed (succ i)
-    have Z'_disj : ∀ i j, i < j → Disjoint (Z' i) (Z' j)  := fun i j hij =>
+    have Z'_closed (i : Fin n) : IsClosed (Z' i) := Z_closed (succ i)
+    have Z'_disj (i j : Fin n) (hij : i < j) : Disjoint (Z' i) (Z' j)  :=
       Z_disj (succ i) (succ j) (succ_lt_succ_iff.mpr hij)
     -- find Z0 ⊆ V ⊆ U disjoint from the Zi with i>0
     let V : Set X  := U \ (⋃ (i : Fin n), Z' i)
     have V_open : IsOpen V := IsOpen.sdiff U_open (isClosed_iUnion_of_finite Z'_closed)
-    have Z0_subset_V : Z 0 ⊆ V := by
-      apply subset_diff.mpr
-      constructor
-      · exact hZU 0
-      · exact disjoint_iUnion_right.mpr (fun i ↦ Z_disj 0 (succ i) (succ_pos i))
-    have Z'_disj_V : ∀ i : Fin n, Disjoint (Z' i) V := by
-      intro i
-      exact Disjoint.mono_left (subset_iUnion_of_subset i fun ⦃x⦄ hx ↦ hx) disjoint_sdiff_right
+    have Z0_subset_V : Z 0 ⊆ V := subset_diff.mpr ⟨hZU 0,
+      disjoint_iUnion_right.mpr (fun i ↦ Z_disj 0 (succ i) (succ_pos i))⟩
+    have Z'_disj_V (i : Fin n) : Disjoint (Z' i) V := Disjoint.mono_left
+      (subset_iUnion_of_subset i fun ⦃x⦄ hx ↦ hx) disjoint_sdiff_right
     -- pick clopen Z0 ⊆ C0 ⊆ V
-    choose C0 hC0 using clopen_sandwich X (Z 0) V (Z_closed 0) V_open Z0_subset_V
+    obtain ⟨C0, C0_clopen, Z0_subset_C0, C0_subset_V⟩ :=
+      clopen_sandwich X (Z 0) V (Z_closed 0) V_open Z0_subset_V
+    have C0_subset_U : C0 ⊆ U := subset_trans C0_subset_V diff_subset
     -- now let W be the complement of C0
     let W : Set X := U \ C0
-    have W_open : IsOpen W := IsOpen.sdiff U_open hC0.1.1
-    have Z'_subset_W : ∀ i : Fin n, Z' i ⊆ W := by
-      intro i; rw [subset_diff]
-      exact ⟨hZU (succ i), Disjoint.mono_right hC0.2.2 (Z'_disj_V i)⟩
-    -- use induction hypothesis to choose Z i ⊆ Ci ⊆ W clopen and mutually disjoint for i>0
-    choose C' hC' using ih Z' W Z'_closed Z'_disj W_open Z'_subset_W
+    have W_open : IsOpen W := IsOpen.sdiff U_open C0_clopen.1
+    have Z'_subset_W (i : Fin n) : Z' i ⊆ W := subset_diff.mpr
+       ⟨hZU (succ i), Disjoint.mono_right C0_subset_V (Z'_disj_V i)⟩
+    -- use induction hypothesis to choose Z i ⊆ C i ⊆ W clopen and mutually disjoint for i>0
+    obtain ⟨C', C'_clopen, Z'_subset_C', C'_subset_W, C'_disj⟩ :=
+      ih Z' W Z'_closed Z'_disj W_open Z'_subset_W
     -- desired C given by C0 = C0 and C (succ i) = C' i
     let C : Fin (n+1) → Set X := cases C0 C'
-    use C
-    constructor
-    · -- C i are clopen and Z i ⊆ C i ⊆ U
-      intro i
-      by_cases h : i = 0
-      · rw [h]
-        exact ⟨hC0.1, hC0.2.1, Subset.trans hC0.2.2 diff_subset⟩
-      · rw [(pred_eq_iff_eq_succ h).mp rfl] -- i = succ _
-        exact ⟨(hC'.1 _).1, (hC'.1 _).2.1, Subset.trans (hC'.1 _).2.2 diff_subset⟩
-    · -- C i are pairwise disjoint
-      intro i j hij
-      by_cases h : i = 0
-      · rw [h]; rw [h] at hij
+    have C'_subset_U (i : Fin n) : C' i ⊆ U := subset_trans (C'_subset_W  i) diff_subset
+    have C_disj (i j : Fin (n+1)) (hij : i < j) : Disjoint (C i) (C j) := by
+      by_cases hi : i = 0
+      · rw [hi]; rw [hi] at hij
         rw [(pred_eq_iff_eq_succ (pos_iff_ne_zero.mp hij)).mp rfl] -- j = succ _
-        exact Disjoint.mono_right (hC'.1 _).2.2 disjoint_sdiff_right
-      · let i_pred := i.pred h
-        have hj : j ≠ 0 := ne_zero_of_lt hij
-        let j_pred := j.pred hj
-        rw [(pred_eq_iff_eq_succ h).mp rfl, (pred_eq_iff_eq_succ hj).mp rfl]
-        exact hC'.2 i_pred j_pred (pred_lt_pred_iff.mpr hij)
-
+        exact Disjoint.mono_right (C'_subset_W _) disjoint_sdiff_right
+      · have hj : j ≠ 0 := ne_zero_of_lt hij
+        rw [(pred_eq_iff_eq_succ hi).mp rfl, (pred_eq_iff_eq_succ hj).mp rfl]
+        exact C'_disj (i.pred hi) (j.pred hj) (pred_lt_pred_iff.mpr hij)
+    exact ⟨C, cases C0_clopen C'_clopen, cases Z0_subset_C0 Z'_subset_C',
+      cases C0_subset_U C'_subset_U, C_disj⟩
 
 
 
