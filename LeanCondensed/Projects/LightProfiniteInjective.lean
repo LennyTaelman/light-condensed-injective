@@ -63,10 +63,12 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
     ∃ C : Fin n → Set X, (∀ i, IsClopen (C i)) ∧ (∀ i, Z i ⊆ C i) ∧ (∀ i, C i ⊆ U) ∧
-    ∀ i j, i < j → Disjoint (C i) (C j) := by
-  induction' n with n ih generalizing U
-  · exact ⟨λ _ ↦ ∅, elim0, λ i ↦ elim0 i, elim0, λ i ↦ elim0 i⟩
-  · -- for induction step, let Z' be the restriction of Z along succ : Fin n → Fin (n+1)
+    (∀ i j, i < j → Disjoint (C i) (C j)) := by
+  induction n generalizing U
+  case zero =>
+    exact ⟨λ _ ↦ ∅, elim0, λ i ↦ elim0 i, elim0, λ i ↦ elim0 i⟩
+  case succ n ih =>
+    -- let Z' be the restriction of Z along succ : Fin n → Fin (n+1)
     let Z' : Fin n → Set X := fun i ↦ Z (succ i)
     have Z'_closed (i : Fin n) : IsClosed (Z' i) := Z_closed (succ i)
     have Z'_disj (i j : Fin n) (hij : i < j) : Disjoint (Z' i) (Z' j)  :=
@@ -78,16 +80,15 @@ lemma fin_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
       disjoint_iUnion_right.mpr (fun i ↦ Z_disj 0 (succ i) (succ_pos i))⟩
     have Z'_disj_V (i : Fin n) : Disjoint (Z' i) V := Disjoint.mono_left
       (subset_iUnion_of_subset i fun ⦃x⦄ hx ↦ hx) disjoint_sdiff_right
-    -- pick clopen Z0 ⊆ C0 ⊆ V
+    -- use clopen_sandwitch to pick clopen Z0 ⊆ C0 ⊆ V
     obtain ⟨C0, C0_clopen, Z0_subset_C0, C0_subset_V⟩ :=
       clopen_sandwich X (Z 0) V (Z_closed 0) V_open Z0_subset_V
     have C0_subset_U : C0 ⊆ U := subset_trans C0_subset_V diff_subset
-    -- now let W be the complement of C0
+    -- use induction hypothesis to choose Z i ⊆ C i ⊆ W = U \ C0 for i>0
     let W : Set X := U \ C0
     have W_open : IsOpen W := IsOpen.sdiff U_open C0_clopen.1
     have Z'_subset_W (i : Fin n) : Z' i ⊆ W := subset_diff.mpr
-       ⟨hZU (succ i), Disjoint.mono_right C0_subset_V (Z'_disj_V i)⟩
-    -- use induction hypothesis to choose Z i ⊆ C i ⊆ W clopen and mutually disjoint for i>0
+      ⟨hZU (succ i), Disjoint.mono_right C0_subset_V (Z'_disj_V i)⟩
     obtain ⟨C', C'_clopen, Z'_subset_C', C'_subset_W, C'_disj⟩ :=
       ih Z' W Z'_closed Z'_disj W_open Z'_subset_W
     -- desired C given by C0 = C0 and C (succ i) = C' i
