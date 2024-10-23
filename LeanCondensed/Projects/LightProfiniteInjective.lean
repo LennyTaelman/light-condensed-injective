@@ -102,27 +102,24 @@ lemma finite_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
 
 -- can now prove key extension lemma for functions to nonempty finite sets
 
-lemma to_discrete_lifts_along_injective_profinite
+lemma to_finite_lifts_along_injective_profinite
     (S : Type u) [TopologicalSpace S] [DiscreteTopology S] [Nonempty S] [fin : Finite S]
     (X Y : Profinite.{u}) (f : X → Y) (f_cont: Continuous f) (f_inj: Function.Injective f)
     (g : X → S) (g_cont : Continuous g) :
     ∃ h : Y → S, (h ∘ f = g) ∧ (Continuous h) := by
-  -- let Z s be the inverse image of s
-  let Z : S → Set X := fun s ↦ g ⁻¹' {s}
-  have hZ : ∀ s, IsClosed (Z s) := by
-    intro s
-    apply IsClosed.preimage g_cont isClosed_singleton
-  -- let Z' s be the union of all the  Z t with t ≠ s
-  let Z' : S → Set X := fun s ↦ ⋃ t ≠ s, Z t
-  have hZ' : ∀ s, IsClosed (Z' s) := by
-    intro s
-    refine Set.Finite.isClosed_biUnion ?hs fun i a ↦ hZ i
-    exact Set.toFinite fun t ↦ t = s → False
-  -- let U s be the complement of Z' s
-  let U : S → Set X := fun s ↦ (Z' s)ᶜ
-  have hU : ∀ s, IsOpen (U s) := by
-    intro s
-    exact IsClosed.isOpen_compl
+  -- choose bijection S ≃ Fin n
+  obtain ⟨n, ⟨φ⟩⟩ := Finite.exists_equiv_fin S
+  -- let Z : Fin n → Set Y map i to f g⁻¹ {φ⁻¹ i}
+  let Z : Fin n → Set Y := fun i ↦ f '' (g⁻¹' {φ.invFun i})
+  have f_closed : ClosedEmbedding f := Continuous.closedEmbedding f_cont f_inj
+  have Z_closed : ∀ i, IsClosed (Z i) := fun i ↦
+    (ClosedEmbedding.closed_iff_image_closed f_closed).mp
+    (IsClosed.preimage g_cont isClosed_singleton)
+
+
+
+
+
   sorry
 
 
