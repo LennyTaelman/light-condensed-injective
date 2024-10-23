@@ -50,6 +50,9 @@ open Fin
   a profinite space can be separated by disjoint clopens contained in U
 -/
 
+/- need variant: take U clopen and find C i such that moreover the C i cover U
+-/
+
 lemma finite_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) )
     (U_open : IsOpen U) (hZU : ∀ i, Z i ⊆ U) :
@@ -98,6 +101,36 @@ lemma finite_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
       cases C0_subset_U C'_subset_U, C_disj⟩
 
 
+/- given a finite _nonempty_ family of disjoint closed subsets Z in a profinite space,
+  there is a clopen partition C of the space such that each Z i is contained in some C i
+-/
+
+lemma finite_clopen_partition (n : ℕ) (Z : Fin (n+1) → Set X)
+    (Z_closed : ∀ i, IsClosed (Z i)) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) ) :
+    ∃ C : Fin (n+1) → Set X, (∀ i, IsClopen (C i)) ∧ (∀ i, Z i ⊆ C i) ∧
+    (⋃ i, C i) = univ ∧ (∀ i j, i < j → Disjoint (C i) (C j)) := by
+  -- beter: obtain C' on Fin n using Z succ, and U = X \ Z 0
+  -- then set C0 to be the complememnt of the union of the C' i
+  -- and finally set C to be cases C0 C'
+  let Z' : Fin n → Set X := fun i ↦ Z (succ i)
+  have Z'_closed (i : Fin n) : IsClosed (Z' i) := Z_closed (succ i)
+  have Z'_disj (i j : Fin n) (hij : i < j) : Disjoint (Z' i) (Z' j)  :=
+    Z_disj (succ i) (succ j) (succ_lt_succ_iff.mpr hij)
+  let U : Set X := univ \ Z 0
+  have U_open : IsOpen U := IsOpen.sdiff isOpen_univ (Z_closed 0)
+  have hZU : ∀ i, Z' i ⊆ U := sorry
+  obtain ⟨C', C'_clopen, Z_subset_C', C'_subset_U, C'_disj⟩ :=
+    finite_clopen_separation X n Z' U Z'_closed Z'_disj U_open hZU
+  let C0 : Set X := univ \ (⋃ (i : Fin n), C' i)
+  have C0_clopen : IsClopen C0 := IsClopen.diff isClopen_univ
+    (isClopen_iUnion_of_finite (λ i ↦ C'_clopen i))
+  let C : Fin (n+1) → Set X := cases C0 C'
+  have C_clopen : ∀ i, IsClopen (C i) := cases C0_clopen C'_clopen
+  have Z_subset_C : ∀ i, Z i ⊆ C i := by sorry
+  have C_disj : ∀ i j, i < j → Disjoint (C i) (C j) := by sorry
+  have C_cover : (⋃ i, C i) = univ := by sorry
+  exact ⟨C, C_clopen, Z_subset_C, C_cover, C_disj⟩
+
 
 
 -- can now prove key extension lemma for functions to nonempty finite sets
@@ -107,12 +140,16 @@ lemma to_finite_lifts_along_injective_profinite
     (X Y : Profinite.{u}) (f : X → Y) (f_cont: Continuous f) (f_inj: Function.Injective f)
     (g : X → S) (g_cont : Continuous g) :
     ∃ h : Y → S, (h ∘ f = g) ∧ (Continuous h) := by
-  -- choose bijection φ': S → Fin n, with n>0
-  obtain ⟨n, ⟨φ⟩⟩ := Finite.exists_equiv_fin S
+  -- choose bijection φ': S → Fin n+1, with n>0
+  obtain ⟨m, ⟨φ⟩⟩ := Finite.exists_equiv_fin S
   let φ' := φ.symm
-  -- have n_pos : 0 < n := pos_iff_nonempty.mpr ((Equiv.nonempty_congr φ).mp non_empty)
-  -- let Z : Fin n → Set Y map i to f g⁻¹ {φ⁻¹ i}
-  let Z : Fin n → Set Y := fun i ↦ f '' (g⁻¹' {φ' i})
+  have m_pos : 0 < m := pos_iff_nonempty.mpr ((Equiv.nonempty_congr φ).mp non_empty)
+  let n := m.pred
+  have hnm : Nat.succ n = m :=  Nat.succ_pred_eq_of_pos m_pos
+  -- bijection ψ : Fin n+1 → Fin m
+  let ψ : Fin (n+1) ≃ Fin m := sorry
+  -- let Z : Fin m → Set Y map i to f g⁻¹ {φ⁻¹ i}
+  let Z : Fin (n+1) → Set Y := fun i ↦ f '' (g⁻¹' {φ' (ψ i)})
   have f_closed : ClosedEmbedding f := Continuous.closedEmbedding f_cont f_inj
   have Z_closed : ∀ i, IsClosed (Z i) := fun i ↦
     (ClosedEmbedding.closed_iff_image_closed f_closed).mp
@@ -123,14 +160,20 @@ lemma to_finite_lifts_along_injective_profinite
   have Z_subset_Y : ∀ i, Z i ⊆ univ := fun i ↦ subset_univ _
   -- choose Z_i ⊆ C_i clopen and disjoint
   obtain ⟨C, C_clopen, Z_subset_C, _, C_disj⟩ :=
-    finite_clopen_separation Y n Z univ Z_closed Z_disj isOpen_univ Z_subset_Y
+    finite_clopen_partition Y n Z univ Z_closed Z_disj isOpen_univ Z_subset_Y
   -- let C' be the complement of the union of the C i
-  let C' : Set Y := univ \ (⋃ (i : Fin n), C i)
+  let Ctot : Set Y := ⋃ (i : Fin n), C i
+  let C' : Set Y := univ \ Ctot
   have C'_clopen : IsClopen C' := IsClopen.diff isClopen_univ
     (isClopen_iUnion_of_finite C_clopen)
+  have h_cover : ∀ y : Y, y ∉ C' → ∃ i, y ∈ C i := by
+    sorry
   -- pick a `base point' in S
   let s : S := Classical.arbitrary S
   -- now define h : Y → S by mapping C i to φ i and C' to s
+  have C_disj' : ∀ (i j : Fin n) (y : Y) (hxi : y ∈ C i) (hyj : y ∈ C j), φ' i = φ' j := by
+    sorry
+  let h0 := iUnionLift C (λ i _ ↦ φ' i) C_disj' Ctot (by tauto)
 
 
 
