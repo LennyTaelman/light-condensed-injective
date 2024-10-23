@@ -28,7 +28,7 @@ lemma clopen_sandwich (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z �
     ∃ C : Set X, IsClopen C ∧ Z ⊆ C ∧ C ⊆ U := by
   -- every z ∈ Z has clopen neighborhood V z ⊆ U
   choose V hV using fun (z : Z) ↦ compact_exists_isClopen_in_isOpen hU (hZU z.property)
-  -- choose V hV using h_clopen_nbhd
+  -- the V z cover Z
   have V_cover : Z ⊆ iUnion V := fun z hz ↦ mem_iUnion.mpr ⟨⟨z, hz⟩, (hV ⟨z, hz⟩).2.1⟩
   -- the V z are open and closed
   have V_open : ∀ z : Subtype Z, IsOpen (V z) := fun z ↦ (hV z).1.2
@@ -103,18 +103,37 @@ lemma finite_clopen_separation (n : ℕ) (Z : Fin n → Set X) (U : Set X)
 -- can now prove key extension lemma for functions to nonempty finite sets
 
 lemma to_finite_lifts_along_injective_profinite
-    (S : Type u) [TopologicalSpace S] [DiscreteTopology S] [Nonempty S] [fin : Finite S]
+    (S : Type u) [TopologicalSpace S] [DiscreteTopology S] [non_empty : Nonempty S] [fin : Finite S]
     (X Y : Profinite.{u}) (f : X → Y) (f_cont: Continuous f) (f_inj: Function.Injective f)
     (g : X → S) (g_cont : Continuous g) :
     ∃ h : Y → S, (h ∘ f = g) ∧ (Continuous h) := by
-  -- choose bijection S ≃ Fin n
+  -- choose bijection φ': S → Fin n, with n>0
   obtain ⟨n, ⟨φ⟩⟩ := Finite.exists_equiv_fin S
+  let φ' := φ.symm
+  -- have n_pos : 0 < n := pos_iff_nonempty.mpr ((Equiv.nonempty_congr φ).mp non_empty)
   -- let Z : Fin n → Set Y map i to f g⁻¹ {φ⁻¹ i}
-  let Z : Fin n → Set Y := fun i ↦ f '' (g⁻¹' {φ.invFun i})
+  let Z : Fin n → Set Y := fun i ↦ f '' (g⁻¹' {φ' i})
   have f_closed : ClosedEmbedding f := Continuous.closedEmbedding f_cont f_inj
   have Z_closed : ∀ i, IsClosed (Z i) := fun i ↦
     (ClosedEmbedding.closed_iff_image_closed f_closed).mp
     (IsClosed.preimage g_cont isClosed_singleton)
+  have Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) := fun i j hij ↦
+    (disjoint_image_iff f_inj).mpr (Disjoint.preimage g (disjoint_singleton.mpr
+    (Function.Injective.ne (Equiv.injective φ') (Fin.ne_of_lt hij))))
+  have Z_subset_Y : ∀ i, Z i ⊆ univ := fun i ↦ subset_univ _
+  -- choose Z_i ⊆ C_i clopen and disjoint
+  obtain ⟨C, C_clopen, Z_subset_C, _, C_disj⟩ :=
+    finite_clopen_separation Y n Z univ Z_closed Z_disj isOpen_univ Z_subset_Y
+  -- let C' be the complement of the union of the C i
+  let C' : Set Y := univ \ (⋃ (i : Fin n), C i)
+  have C'_clopen : IsClopen C' := IsClopen.diff isClopen_univ
+    (isClopen_iUnion_of_finite C_clopen)
+  -- pick a `base point' in S
+  let s : S := Classical.arbitrary S
+  -- now define h : Y → S by mapping C i to φ i and C' to s
+
+
+
 
 
 
