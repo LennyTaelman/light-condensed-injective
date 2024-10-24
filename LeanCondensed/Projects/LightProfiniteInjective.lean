@@ -155,9 +155,35 @@ lemma to_finite_lifts_along_injective_profinite
   -- choose Z_i ⊆ C_i clopen and disjoint, covering Y
   obtain ⟨C, C_clopen, Z_subset_C, C_cover, univ_cover_C, C_disj⟩ :=
     clopen_partition_of_disjoint_closeds Y n Z Z_closed Z_disj
-  let h := iUnionLift C (λ i _ ↦ φ' i) C_disj C_cover (by tauto)
+  have h_glue (i j : Fin (n+1)) (x : Y) (hxi : x ∈ C i) (hxj : x ∈ C j) :  φ' (ψ i) = φ' (ψ j) := by
+    apply Equiv.congr_arg; apply Equiv.congr_arg
+    by_cases hij : i = j
+    · exact hij
+    · by_cases hij' : i < j
+      · exfalso
+        exact Set.disjoint_iff.mp (C_disj i j hij') (mem_inter hxi hxj)
+      · have hji' : j < i := lt_of_le_of_ne (not_lt.mp hij') (hij ∘ Eq.symm)
+        exfalso
+        exact Set.disjoint_iff.mp (C_disj j i hji') (mem_inter hxj hxi)
+  have C_cover : univ ⊆ (⋃ i, C i) := univ_cover_C
+  let h' := iUnionLift C (λ i _ ↦ φ' (ψ i)) h_glue univ C_cover
+  have h : Y → S := λ y ↦ h' ⟨y, mem_univ y⟩
+  have h_cont : Continuous h := by
+    have h_loc_cst : IsLocallyConstant h := by
+      apply IsLocallyConstant.iff_isOpen_fiber.mpr
+      intro s
+      -- bah all this moving isomorphic finite sets around is annoying
+      -- mayby formulate with Fin (n+1) with discrete topology?
+      sorry
 
-  sorry
+    apply continuous_iff_isClosed.mpr ?_
+    intro T _
+    -- T is union of
+
+
+
+    sorry
+  exact ⟨h, sorry, h_cont⟩
 
 
 
