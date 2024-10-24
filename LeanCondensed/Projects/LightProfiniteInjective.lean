@@ -99,15 +99,10 @@ lemma clopen_partition_of_disjoint_closeds_in_clopen (n : ℕ) (Z : Fin (n+1) �
       intro x hx
       simp
       by_cases hx0 : x ∈ C0
-      · use 0
-        unfold C
-        dsimp
-        exact hx0
-      · have xD : x ∈ D' := by tauto
-        have h := C'_cover_D' xD
-        obtain ⟨i, hi⟩ := mem_iUnion.mp h
-        use i.succ
-        exact hi
+      · exact ⟨0, hx0⟩
+      · have xD' : x ∈ D' := mem_diff_of_mem hx hx0
+        obtain ⟨i, hi⟩ := mem_iUnion.mp (C'_cover_D' xD')
+        exact ⟨i.succ, hi⟩
     have C_disj (i j : Fin (n+2)) (hij : i < j) : Disjoint (C i) (C j) := by
       by_cases hi : i = 0
       · rw [hi]; rw [hi] at hij
@@ -157,29 +152,10 @@ lemma to_finite_lifts_along_injective_profinite
     (disjoint_image_iff f_inj).mpr (Disjoint.preimage g (disjoint_singleton.mpr
     (Function.Injective.ne (Equiv.injective φ') (Fin.ne_of_lt hij))))
   have Z_subset_Y : ∀ i, Z i ⊆ univ := fun i ↦ subset_univ _
-  -- choose Z_i ⊆ C_i clopen and disjoint
-  obtain ⟨C, C_clopen, Z_subset_C, _, C_disj⟩ :=
-    finite_clopen_partition Y n Z univ Z_closed Z_disj isOpen_univ Z_subset_Y
-  -- let C' be the complement of the union of the C i
-  let Ctot : Set Y := ⋃ (i : Fin n), C i
-  let C' : Set Y := univ \ Ctot
-  have C'_clopen : IsClopen C' := IsClopen.diff isClopen_univ
-    (isClopen_iUnion_of_finite C_clopen)
-  have h_cover : ∀ y : Y, y ∉ C' → ∃ i, y ∈ C i := by
-    sorry
-  -- pick a `base point' in S
-  let s : S := Classical.arbitrary S
-  -- now define h : Y → S by mapping C i to φ i and C' to s
-  have C_disj' : ∀ (i j : Fin n) (y : Y) (hxi : y ∈ C i) (hyj : y ∈ C j), φ' i = φ' j := by
-    sorry
-  let h0 := iUnionLift C (λ i _ ↦ φ' i) C_disj' Ctot (by tauto)
-
-
-
-
-
-
-
+  -- choose Z_i ⊆ C_i clopen and disjoint, covering Y
+  obtain ⟨C, C_clopen, Z_subset_C, C_cover, univ_cover_C, C_disj⟩ :=
+    clopen_partition_of_disjoint_closeds Y n Z Z_closed Z_disj
+  let h := iUnionLift C (λ i _ ↦ φ' i) C_disj C_cover (by tauto)
 
   sorry
 
