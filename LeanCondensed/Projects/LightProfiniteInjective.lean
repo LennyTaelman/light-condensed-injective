@@ -327,20 +327,15 @@ lemma to_fin_lifts_along_injective_profinite'
 
 lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   (f : X → Y) (hf : Continuous f) (f_inj : Function.Injective f)
-  (f' : S → T) (hf' : Continuous f') (f'_surj : Function.Surjective f')
+  (f' : S → T) (f'_surj : Function.Surjective f')
   (g : X → S) (g_cont : Continuous g) (g' : Y → T) (hg' : Continuous g')
   (h_comm : g' ∘ f = f' ∘ g) :
   ∃ k : Y → S, (f' ∘ k = g') ∧ (k ∘ f = g) ∧ (Continuous k) := by
 
-  /- use clopen_partition_of_disjoint_closeds
-    Identify S ≃ Fin n. Define Z i = f g⁻¹ {i} and D i = f'⁻¹ g' {i}
-    Then apply preceding lemma to get clopens D i covering Y.
-    Now define k to be the unique map sending D i to i. -/
   -- help the instance inference a bit: T is finite
   have _ : Finite T := Finite.of_surjective f' f'_surj
   -- pick bijection between Fin n and S
   obtain ⟨n, φ, ψ, h1, h2⟩ := Finite.exists_equiv_fin S
-  -- have hψ
   -- define Z i to be the image of the fiber of g at i
   let Z : Fin n → Set Y := fun i ↦ f '' (g⁻¹' {ψ i})
   have Z_closed (i) : IsClosed (Z i) :=
@@ -363,16 +358,18 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
     have h_comm' : g' (f x) = f' (g x) := congr_fun h_comm x
     convert rfl
     exact (eq_of_mem_singleton hx1).symm
-  have D_cover : univ ⊆ (⋃ i, D i) := by
+  have D_cover_univ : univ ⊆ (⋃ i, D i) := by
     intro y hy
     simp
     obtain ⟨s, hs⟩ := f'_surj (g' y)
     use φ s
     rw [mem_preimage, h1]
     exact hs.symm
-  -- apply clopen_partition_of_disjoint_clopens to get clopens C i
+  -- obtain clopens Z i ⊆ C i ⊆ D i with C i disjoint, covering Y
   obtain ⟨C, C_clopen, Z_subset_C, C_subset_D, C_cover_D, C_disj⟩ :=
     clopen_partition_of_disjoint_closeds_in_clopens Y n Z D Z_closed D_clopen Z_subset_D Z_disj
+  have C_cover_univ : ⋃ i, C i = univ :=  univ_subset_iff.mp
+    (subset_trans D_cover_univ C_cover_D)
   -- define k to be the unique map sending C i to ψ i
   have h_glue (i j : Fin n) (x : Y) (hxi : x ∈ C i) (hxj : x ∈ C j) :  ψ i = ψ j := by
     by_cases hij : i = j
@@ -383,19 +380,49 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
       · have hji' : j < i := lt_of_le_of_ne (not_lt.mp hij') (hij ∘ Eq.symm)
         exfalso
         exact Set.disjoint_iff.mp (C_disj j i hji') (mem_inter hxj hxi)
-  have C_cover_univ : ⋃ i, C i = univ := by
-    apply univ_subset_iff.mp
-    apply subset_trans ?h C_cover_D
-
-
-
-    sorry
   let k := liftCover C (λ i _ ↦ ψ i) h_glue C_cover_univ
-  use k
-  have h_f'k_g' : f' ∘ k = g' := by sorry
-  have h_kf_g : k ∘ f = g := by sorry
-  have h_cont : Continuous k := by sorry
-  exact ⟨h_f'k_g', h_kf_g, h_cont⟩
+  -- now verify that k has the desired properties
+  have h_f'k_g' : f' ∘ k = g' := by
+    ext y
+    simp
+    -- y is contained in C i for some i
+    have hy : y ∈ ⋃ i, C i := by
+      rw [C_cover_univ]
+      exact mem_univ y
+    obtain ⟨i, hi⟩ := mem_iUnion.mp hy
+    have hki : k y = ψ i := liftCover_of_mem hi
+    rw [hki]
+    exact symm (C_subset_D i hi)
+  have h_kf_g : k ∘ f = g := by
+    ext x
+    simp
+    let i := φ (g x)
+    have hfC : f x ∈ Z i := by
+      rw [mem_image]
+      exact ⟨x, symm (h1 (g x)), rfl⟩
+    have hC : f x ∈ C i := Z_subset_C i hfC
+    have hki : k (f x) = ψ i := liftCover_of_mem hC
+    rw [hki]
+    exact (h1 (g x))
+  have C_eq_fiber (i) : C i = k⁻¹' {ψ i} := by
+    ext y
+    constructor
+    · exact liftCover_of_mem
+    · rw [preimage_liftCover]
+      simp
+      intro j hji hj
+      rw [Function.LeftInverse.injective h2 hji] at hj
+      exact hj
+  have h_cont : Continuous k := by
+    have h_loc_cst : IsLocallyConstant k := by
+      apply IsLocallyConstant.iff_isOpen_fiber.mpr
+      intro s
+      have hsi : s = ψ (φ s) := by rw [h1]
+      rw [hsi, ← C_eq_fiber]
+      exact (C_clopen (φ s)).2
+    exact { isOpen_preimage := fun s _ ↦ h_loc_cst s }
+  exact ⟨k, h_f'k_g', h_kf_g, h_cont⟩
+
 
 
 
