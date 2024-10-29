@@ -117,13 +117,12 @@ lemma clopen_partition_of_disjoint_closeds_in_clopen (n : ℕ) (Z : Fin (n+1) �
 
 
 /-
-  refinement, given finite family Z i ⊆ D i of closed subsets in clopens
-  such that the Z i are disjoint, then there are clopens Z i ⊆ C i ⊆ D i
+  Let X be profinite, D i ⊆ X a finite family of clopens, and Z i ⊆ D i closed.
+  Assume that all the Z i are disjoint. Then there exist clopens Z i ⊆ C i ⊆ D i
   with the C i disjoint, and such that ∪ C i = ∪ D i
-  NOTE: this is more elegant, works for empty family!
 -/
 
-lemma clopen_partition_of_disjoint_closeds_in_clopen' (n : ℕ)
+lemma clopen_partition_of_disjoint_closeds_in_clopens (n : ℕ)
     (Z : Fin n → Set X) (D : Fin n → Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (D_clopen : ∀ i, IsClopen (D i))
     (Z_subset_D : ∀ i, Z i ⊆ D i) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) ) :
@@ -178,7 +177,7 @@ lemma clopen_partition_of_disjoint_closeds_in_clopen' (n : ℕ)
     have C_clopen : ∀ i, IsClopen (C i) := cases C0_clopen C'_clopen
     have Z_subset_C : ∀ i, Z i ⊆ C i := cases Z0_subset_C0 Z'_subset_C'
     have C_subset_D : ∀ i, C i ⊆ D i := cases C0_subset_D0 C'_subset_D
-    have C_cover_D : (⋃ i, D i) ⊆ (⋃ i, C i) := by
+    have C_cover_D : (⋃ i, D i) ⊆ (⋃ i, C i) := by -- messy, but I don't see easy simplification
       intro x hx
       simp
       by_cases hx0 : x ∈ C0
@@ -209,7 +208,8 @@ lemma clopen_partition_of_disjoint_closeds_in_clopen' (n : ℕ)
       by_cases hi : i = 0
       · rw [hi]; rw [hi] at hij
         rw [(pred_eq_iff_eq_succ (pos_iff_ne_zero.mp hij)).mp rfl] -- j = succ _
-        exact Disjoint.mono_right (C'_subset_D' _) disjoint_sdiff_right
+        apply Disjoint.mono_right (subset_iUnion (fun i ↦ C' i) (j.pred (ne_zero_of_lt hij)))
+        exact disjoint_sdiff_left
       · have hj : j ≠ 0 := ne_zero_of_lt hij
         rw [(pred_eq_iff_eq_succ hi).mp rfl, (pred_eq_iff_eq_succ hj).mp rfl]
         exact C'_disj (i.pred hi) (j.pred hj) (pred_lt_pred_iff.mpr hij)
@@ -325,33 +325,78 @@ lemma to_fin_lifts_along_injective_profinite'
 -/
 
 
-lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Nonempty S] [Finite S] [Finite T]
+lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   (f : X → Y) (hf : Continuous f) (f_inj : Function.Injective f)
   (f' : S → T) (hf' : Continuous f') (f'_surj : Function.Surjective f')
   (g : X → S) (g_cont : Continuous g) (g' : Y → T) (hg' : Continuous g')
   (h_comm : g' ∘ f = f' ∘ g) :
   ∃ k : Y → S, (f' ∘ k = g') ∧ (k ∘ f = g) ∧ (Continuous k) := by
-  -- TODO: do this on paper first
-  /- intuitive proof: for ever t, produce map from fiber Y_t to S_t by extending
-    along X_t → Y_t. Then glue these to produce Y → S.
-    This should work quite smoothly; produce a function
-    T → _, mapping t to the choice of a function Y_t → S_t guaranteed by the above
-    then glue.
-  -/
-  /- option 2:
-    S provides disjoint closed subsets Z_s of Y
-    need to produce clopens C_s with the additional property that g'(C_S) ⊆ {f'(s)}
-    then can simply proceed as above
-  -/
-  /- option 3: refine clopens C_s to clopens C_{s,t} = C_s ∩ g'⁻¹ {t}
-    note that X is contained in the 'compatible' clopens C_{s,t} for which f'(s) = t
-    ugly; then need to map compatible C_{s,t} to s, and incompatible C_{s,t} to random preimage
-    of t.
-  -/
-  -- REALLY do this on paper first!!
+
+  /- use clopen_partition_of_disjoint_closeds
+    Identify S ≃ Fin n. Define Z i = f g⁻¹ {i} and D i = f'⁻¹ g' {i}
+    Then apply preceding lemma to get clopens D i covering Y.
+    Now define k to be the unique map sending D i to i. -/
+  -- help the instance inference a bit: T is finite
+  have _ : Finite T := Finite.of_surjective f' f'_surj
+  -- pick bijection between Fin n and S
+  obtain ⟨n, φ, ψ, h1, h2⟩ := Finite.exists_equiv_fin S
+  -- have hψ
+  -- define Z i to be the image of the fiber of g at i
+  let Z : Fin n → Set Y := fun i ↦ f '' (g⁻¹' {ψ i})
+  have Z_closed (i) : IsClosed (Z i) :=
+    (ClosedEmbedding.closed_iff_image_closed (Continuous.closedEmbedding hf f_inj)).mp
+    (IsClosed.preimage g_cont isClosed_singleton)
+  have Z_disj (i j) (hij : i < j) : Disjoint (Z i) (Z j) := by
+    apply (disjoint_image_iff f_inj).mpr
+    apply Disjoint.preimage g
+    apply disjoint_singleton.mpr
+    exact Function.Injective.ne (Function.LeftInverse.injective h2) (Fin.ne_of_lt hij)
+  -- define D i to be the fiber of g' at f' i
+  let D : Fin n → Set Y := fun i ↦ g' ⁻¹' ( {f' (ψ i)})
+  have D_clopen i : IsClopen (D i) := IsClopen.preimage (isClopen_discrete {f' (ψ i)}) hg'
+  have Z_subset_D i : Z i ⊆ D i := by
+    intro z hz
+    rw [mem_preimage]
+    simp
+    obtain ⟨x, hx1, hx2⟩ := (mem_image _ _ _).mp hz
+    rw [←hx2]
+    have h_comm' : g' (f x) = f' (g x) := congr_fun h_comm x
+    convert rfl
+    exact (eq_of_mem_singleton hx1).symm
+  have D_cover : univ ⊆ (⋃ i, D i) := by
+    intro y hy
+    simp
+    obtain ⟨s, hs⟩ := f'_surj (g' y)
+    use φ s
+    rw [mem_preimage, h1]
+    exact hs.symm
+  -- apply clopen_partition_of_disjoint_clopens to get clopens C i
+  obtain ⟨C, C_clopen, Z_subset_C, C_subset_D, C_cover_D, C_disj⟩ :=
+    clopen_partition_of_disjoint_closeds_in_clopens Y n Z D Z_closed D_clopen Z_subset_D Z_disj
+  -- define k to be the unique map sending C i to ψ i
+  have h_glue (i j : Fin n) (x : Y) (hxi : x ∈ C i) (hxj : x ∈ C j) :  ψ i = ψ j := by
+    by_cases hij : i = j
+    · exact congrArg ψ hij
+    · by_cases hij' : i < j
+      · exfalso
+        exact Set.disjoint_iff.mp (C_disj i j hij') (mem_inter hxi hxj)
+      · have hji' : j < i := lt_of_le_of_ne (not_lt.mp hij') (hij ∘ Eq.symm)
+        exfalso
+        exact Set.disjoint_iff.mp (C_disj j i hji') (mem_inter hxj hxi)
+  have C_cover_univ : ⋃ i, C i = univ := by
+    apply univ_subset_iff.mp
+    apply subset_trans ?h C_cover_D
 
 
-  sorry
+
+    sorry
+  let k := liftCover C (λ i _ ↦ ψ i) h_glue C_cover_univ
+  use k
+  have h_f'k_g' : f' ∘ k = g' := by sorry
+  have h_kf_g : k ∘ f = g := by sorry
+  have h_cont : Continuous k := by sorry
+  exact ⟨h_f'k_g', h_kf_g, h_cont⟩
+
 
 
 open CategoryTheory
