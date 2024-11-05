@@ -161,7 +161,7 @@ lemma clopen_partition_of_disjoint_closeds_in_clopens (n : ℕ)
 lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   (f : X → Y) (hf : Continuous f) (f_inj : Function.Injective f)
   (f' : S → T) (f'_surj : Function.Surjective f')
-  (g : X → S) (g_cont : Continuous g) (g' : Y → T) (hg' : Continuous g')
+  (g : X → S) (hg : Continuous g) (g' : Y → T) (hg' : Continuous g')
   (h_comm : g' ∘ f = f' ∘ g) :
   ∃ k : Y → S, (f' ∘ k = g') ∧ (k ∘ f = g) ∧ (Continuous k) := by
 
@@ -173,7 +173,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   let Z : Fin n → Set Y := fun i ↦ f '' (g⁻¹' {ψ i})
   have Z_closed (i) : IsClosed (Z i) :=
     (ClosedEmbedding.closed_iff_image_closed (Continuous.closedEmbedding hf f_inj)).mp
-    (IsClosed.preimage g_cont isClosed_singleton)
+    (IsClosed.preimage hg isClosed_singleton)
   have Z_disj (i j) (hij : i < j) : Disjoint (Z i) (Z j) := by
     apply (disjoint_image_iff f_inj).mpr
     apply Disjoint.preimage g
@@ -260,17 +260,52 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
 
 
 open CategoryTheory
+open Classical
+open CompHausLike
+
+-- play with morphisms and functions
+
+variable (X Y : Profinite.{u}) (f : X ⟶ Y)
+#check X
+#check X.toTop
+#check (X.toTop).topologicalSpace_coe
+#check f.toFun
+
+#check mono_iff_injective
 
 
 -- warming up: injectivity of finite discrete spaces in Profinite spaces
+-- won't need this, but should be good exercise
 
-lemma injective_of_finite (S : Profinite.{u}) [Nonempty S] [Finite S]:
+lemma injective_of_finite (S : Profinite.{u}) [S_ne : Nonempty S] [Finite S]:
   Injective (S) := by
   refine { factors := ?factors }
+  intro X Y g f h
+  have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp h
+  -- let T be the singleton space
+  let T : (Profinite : Type (u + 1)) := Profinite.of (ULift (Fin 1))
+  -- let f' be the unique map from S to T
+  let f' : S → T := fun _ => (0 : ULift (Fin 1))
+  have f'_surj : Function.Surjective f' := by
+    intro t
+    use Classical.choice S_ne
+    simp only [CompHausLike.coe_of, T, f']
+    ext : 2
+    simp only [ULift.zero_down, isValue, val_eq_zero]
+  -- let g' be the unique map from Y to T
+  let g' : Y → T := fun _ => (0 : ULift (Fin 1))
+  have g'_cont : Continuous g' := continuous_const
+  have h_commutes : g' ∘ f.toFun = f' ∘ g.toFun := rfl
+  -- now apply the key lifting lemma
+  obtain ⟨k, h1, h2, h3⟩ := key_lifting_lemma X Y S T f.toFun f.continuous f_inj f' f'_surj
+    g.toFun g.continuous g' g'_cont h_commutes
+  exact ⟨⟨k, h3⟩ , ConcreteCategory.forget_faithful.map_injective h2⟩
 
 
 
-  sorry
+
+
+
 
 -- this is the target theorem!
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
