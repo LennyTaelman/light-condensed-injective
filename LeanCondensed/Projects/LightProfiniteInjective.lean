@@ -163,7 +163,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   (f' : S → T) (f'_surj : Function.Surjective f')
   (g : X → S) (hg : Continuous g) (g' : Y → T) (hg' : Continuous g')
   (h_comm : g' ∘ f = f' ∘ g) :
-  ∃ k : Y → S, (f' ∘ k = g') ∧ (k ∘ f = g) ∧ (Continuous k) := by
+  ∃ k : Y → S, (Continuous k) ∧ (f' ∘ k = g') ∧ (k ∘ f = g)  := by
 
   -- help the instance inference a bit: T is finite
   have _ : Finite T := Finite.of_surjective f' f'_surj
@@ -254,7 +254,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
       rw [hsi, ← C_eq_fiber]
       exact (C_clopen (φ s)).2
     exact { isOpen_preimage := fun s _ ↦ h_loc_cst s }
-  exact ⟨k, h_f'k_g', h_kf_g, h_cont⟩
+  exact ⟨k, h_cont, h_f'k_g', h_kf_g⟩
 
 
 
@@ -279,7 +279,7 @@ variable (X Y : Profinite.{u}) (f : X ⟶ Y)
 
 lemma injective_of_finite (S : Profinite.{u}) [S_ne : Nonempty S] [Finite S]:
   Injective (S) := by
-  refine { factors := ?factors }
+  constructor
   intro X Y g f h
   have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp h
   -- let T be the singleton space
@@ -297,20 +297,44 @@ lemma injective_of_finite (S : Profinite.{u}) [S_ne : Nonempty S] [Finite S]:
   have g'_cont : Continuous g' := continuous_const
   have h_commutes : g' ∘ f.toFun = f' ∘ g.toFun := rfl
   -- now apply the key lifting lemma
-  obtain ⟨k, h1, h2, h3⟩ := key_lifting_lemma X Y S T f.toFun f.continuous f_inj f' f'_surj
+  obtain ⟨k, h1, _, h3⟩ := key_lifting_lemma X Y S T f.toFun f.continuous f_inj f' f'_surj
     g.toFun g.continuous g' g'_cont h_commutes
-  exact ⟨⟨k, h3⟩ , ConcreteCategory.forget_faithful.map_injective h2⟩
+  exact ⟨⟨k, h1⟩, ConcreteCategory.forget_faithful.map_injective h3⟩
 
 
 
+variable (J : Type) [Preorder J] [IsCofiltered J]
+#synth Category J
 
 
+open Opposite Nat
+
+/-
+  The projection maps in the diagram of a light profinite space
+  are surjective. Not sure if this is true with the current definition.
+  Sounds very likely.
+-/
+def π (n : ℕ) : (op n.succ) ⟶ (op n) := op (homOfLE (le_succ n))
+
+lemma transition_surjective (S : LightProfinite.{u}) (i j : ℕ) (hij : i ≤ j) :
+    Function.Surjective (S.toLightDiagram.diagram.map (op (homOfLE hij))) := by
+  unfold LightProfinite.toLightDiagram
+  dsimp
+
+  sorry
 
 
 -- this is the target theorem!
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   Injective (lightToProfinite.obj S) := by
   constructor
-  intro X Y f g h
-  -- write
+  intro X Y g f h
+  have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp h
+  -- write S as sequential limit of finite discrete spaces
+  let S_diagr := S.toLightDiagram
+  -- build Y → S n inductively
+  -- first interpret Y as constant diagram
+  let Y' : ℕᵒᵖ ⥤ Profinite := (Functor.const _).obj Y
+  -- now build the maps Y → S n inductively
+
   sorry
