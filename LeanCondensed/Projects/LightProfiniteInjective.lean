@@ -161,6 +161,7 @@ lemma clopen_partition_of_disjoint_closeds_in_clopens (n : ℕ)
   there exists a diagonal map k : Y --> S making diagram commute.
 -/
 
+-- probably need a categorical version; maybe do that first?
 
 lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   (f : X → Y) (hf : Continuous f) (f_inj : Function.Injective f)
