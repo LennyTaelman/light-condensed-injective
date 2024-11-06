@@ -161,7 +161,6 @@ lemma clopen_partition_of_disjoint_closeds_in_clopens (n : ℕ)
   there exists a diagonal map k : Y --> S making diagram commute.
 -/
 
--- probably need a categorical version; maybe do that first?
 
 lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   (f : X → Y) (hf : Continuous f) (f_inj : Function.Injective f)
@@ -266,6 +265,23 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
 
 open CategoryTheory
 open CompHausLike
+
+
+-- categorical version
+
+lemma key_lifting_lemma' (X Y S T : Profinite.{u}) [Finite S]
+  (f : X ⟶ Y) [Mono f] (f' : S ⟶ T) [Epi f']
+  (g : X ⟶ S) (g' : Y ⟶ T) (h_comm : f ≫ g' = g ≫ f') :
+  ∃ k : Y ⟶ S, (k ≫ f' = g') ∧ (f ≫ k = g)  := by
+  have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp inferInstance
+  have f'_surj : Function.Surjective f'.toFun :=
+    (Profinite.epi_iff_surjective f').mp inferInstance
+  have h_comm' : g'.toFun ∘ f.toFun = f'.toFun ∘ g.toFun := by
+    dsimp
+    simp_all only [ContinuousMap.toFun_eq_coe]
+    --
+    sorry
+  sorry
 
 -- warming up: injectivity of finite discrete spaces in Profinite spaces
 -- won't need this, but should be good exercise
