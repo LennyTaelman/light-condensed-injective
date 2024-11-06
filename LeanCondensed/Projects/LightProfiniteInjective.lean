@@ -1,9 +1,13 @@
 /-
 Authors: Lenny Taelman
 -/
+
 import Mathlib.CategoryTheory.Preadditive.Injective
-import Mathlib.Topology.Separation
-import LeanCondensed.Mathlib.Condensed.Light.Limits
+import Mathlib.Topology.Category.Profinite.Basic
+import Mathlib.Topology.Category.LightProfinite.AsLimit
+
+
+-- import LeanCondensed.Mathlib.Condensed.Light.Limits
 
 /-!
 
@@ -260,19 +264,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
 
 
 open CategoryTheory
-open Classical
 open CompHausLike
-
--- play with morphisms and functions
-
-variable (X Y : Profinite.{u}) (f : X ⟶ Y)
-#check X
-#check X.toTop
-#check (X.toTop).topologicalSpace_coe
-#check f.toFun
-
-#check mono_iff_injective
-
 
 -- warming up: injectivity of finite discrete spaces in Profinite spaces
 -- won't need this, but should be good exercise
@@ -303,9 +295,6 @@ lemma injective_of_finite (S : Profinite.{u}) [S_ne : Nonempty S] [Finite S]:
 
 
 
-variable (J : Type) [Preorder J] [IsCofiltered J]
-#synth Category J
-
 
 open Opposite Nat
 
@@ -313,6 +302,8 @@ open Opposite Nat
   The projection maps in the diagram of a light profinite space
   are surjective. Not sure if this is true with the current definition.
   Sounds very likely.
+
+  this actually is in mathlib!
 -/
 def π (n : ℕ) : (op n.succ) ⟶ (op n) := op (homOfLE (le_succ n))
 
@@ -325,12 +316,44 @@ lemma transition_surjective (S : LightProfinite.{u}) (i j : ℕ) (hij : i ≤ j)
 
 
 -- this is the target theorem!
+-- warning: S.component 0 will not be a one point space, even when S is Nonempty
+
+
+
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
-  Injective (lightToProfinite.obj S) := by
+  -- Injective (lightToProfinite.obj S) := by
+  Injective S := by
   constructor
   intro X Y g f h
   have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp h
   -- write S as sequential limit of finite discrete spaces
+  -- play a bit with applying the key lifting lemma
+  let (n: ℕ) := 5
+  #check S.component n
+  #check (S.proj n : S ⟶ S.component n)
+
+  have gn : X ⟶ S.component n := g ≫ (S.proj n)
+  have gn_cont : Continuous gn.toFun := gn.continuous_toFun
+  have gnsucc : X ⟶ S.component (n+1) := g ≫ (S.proj n.succ)
+  have gnsucc_cont : Continuous gnsucc.toFun := gnsucc.continuous_toFun
+
+  -- let's do the first step by hand
+  let T := S.component 0
+  let T_ne : Nonempty T := Nonempty.map (S.proj 0).toFun inferInstance
+  have g0 : X ⟶ T := g ≫ (S.proj 0)
+  have g0_cont : Continuous g0.toFun := g0.continuous_toFun
+  let T' : (Profinite : Type (u + 1)) := Profinite.of (ULift (Fin 1))
+  have g0' : Y.toTop → T' := fun _ => (0 : ULift (Fin 1))
+  have g0'_cont : Continuous g0' := continuous_const
+
+
+
+
+
+
+
+
+
   let S_diagr := S.toLightDiagram
   -- build Y → S n inductively
   -- first interpret Y as constant diagram
