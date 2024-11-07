@@ -265,75 +265,49 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
 
 open CategoryTheory
 open CompHausLike
+open ConcreteCategory
 
-
--- categorical version
+-- categorically stated version of key_lifiting_lemma
 
 lemma key_lifting_lemma' (X Y S T : Profinite.{u}) [Finite S]
   (f : X ⟶ Y) [Mono f] (f' : S ⟶ T) [Epi f']
   (g : X ⟶ S) (g' : Y ⟶ T) (h_comm : f ≫ g' = g ≫ f') :
   ∃ k : Y ⟶ S, (k ≫ f' = g') ∧ (f ≫ k = g)  := by
-  have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp inferInstance
-  have f'_surj : Function.Surjective f'.toFun :=
-    (Profinite.epi_iff_surjective f').mp inferInstance
-  have h_comm' : g'.toFun ∘ f.toFun = f'.toFun ∘ g.toFun := by
-    dsimp
-    simp_all only [ContinuousMap.toFun_eq_coe]
-    --
-    sorry
-  sorry
+  have h_comm' : (f ≫ g').toFun = (g ≫ f').toFun := congrArg _ h_comm
+  obtain ⟨k_fun, k_cont, h2, h3⟩ := key_lifting_lemma X Y S T
+    f.toFun f.continuous ((mono_iff_injective f).mp inferInstance)
+    f'.toFun ((Profinite.epi_iff_surjective f').mp inferInstance)
+    g.toFun g.continuous g'.toFun g'.continuous h_comm'
+  exact ⟨⟨k_fun, k_cont⟩, ConcreteCategory.hom_ext_iff.mpr (congrFun h2),
+    ConcreteCategory.hom_ext_iff.mpr (congrFun h3)⟩
 
--- warming up: injectivity of finite discrete spaces in Profinite spaces
--- won't need this, but should be good exercise
 
-lemma injective_of_finite (S : Profinite.{u}) [S_ne : Nonempty S] [Finite S]:
+-- warming up exercise: nonempty finite discrete spaces are injective in profinite spaces
+
+lemma injective_of_finite' (S : Profinite.{u}) [S_ne : Nonempty S] [Finite S]:
   Injective (S) := by
   constructor
-  intro X Y g f h
-  have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp h
-  -- let T be the singleton space
-  let T : (Profinite : Type (u + 1)) := Profinite.of (ULift (Fin 1))
-  -- let f' be the unique map from S to T
-  let f' : S → T := fun _ => (0 : ULift (Fin 1))
-  have f'_surj : Function.Surjective f' := by
-    intro t
-    use Classical.choice S_ne
-    simp only [CompHausLike.coe_of, T, f']
-    ext : 2
-    simp only [ULift.zero_down, isValue, val_eq_zero]
-  -- let g' be the unique map from Y to T
-  let g' : Y → T := fun _ => (0 : ULift (Fin 1))
-  have g'_cont : Continuous g' := continuous_const
-  have h_commutes : g' ∘ f.toFun = f' ∘ g.toFun := rfl
-  -- now apply the key lifting lemma
-  obtain ⟨k, h1, _, h3⟩ := key_lifting_lemma X Y S T f.toFun f.continuous f_inj f' f'_surj
-    g.toFun g.continuous g' g'_cont h_commutes
-  exact ⟨⟨k, h1⟩, ConcreteCategory.forget_faithful.map_injective h3⟩
+  intro X Y g f f_mono
+  -- let f' : S ⟶ pt and g' : Y ⟶ pt be the unique maps
+  let f' := Limits.terminalIsTerminal.from S
+  let g' := Limits.terminalIsTerminal.from Y
+  have f'_epi : Epi f' := by
+    sorry
+  obtain ⟨k, _, h2⟩ := key_lifting_lemma' X Y S _ f f' g g' (Limits.terminal.hom_ext _ _)
+  exact ⟨k, h2⟩
+
+
 
 
 
 
 open Opposite Nat
 
-/-
-  The projection maps in the diagram of a light profinite space
-  are surjective. Not sure if this is true with the current definition.
-  Sounds very likely.
-
-  this actually is in mathlib!
--/
-def π (n : ℕ) : (op n.succ) ⟶ (op n) := op (homOfLE (le_succ n))
-
-lemma transition_surjective (S : LightProfinite.{u}) (i j : ℕ) (hij : i ≤ j) :
-    Function.Surjective (S.toLightDiagram.diagram.map (op (homOfLE hij))) := by
-  unfold LightProfinite.toLightDiagram
-  dsimp
-
-  sorry
 
 
 -- this is the target theorem!
--- warning: S.component 0 will not be a one point space, even when S is Nonempty
+-- warning: S.component 0 will not be a one point space, even when S is Nonempty,
+-- so first step of induction will be a bit more complicated
 
 
 
@@ -358,23 +332,10 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   let T := S.component 0
   let T_ne : Nonempty T := Nonempty.map (S.proj 0).toFun inferInstance
   have g0 : X ⟶ T := g ≫ (S.proj 0)
-  have g0_cont : Continuous g0.toFun := g0.continuous_toFun
-  let T' : (Profinite : Type (u + 1)) := Profinite.of (ULift (Fin 1))
-  have g0' : Y.toTop → T' := fun _ => (0 : ULift (Fin 1))
-  have g0'_cont : Continuous g0' := continuous_const
-
-
-
-
-
 
 
 
 
   let S_diagr := S.toLightDiagram
-  -- build Y → S n inductively
-  -- first interpret Y as constant diagram
-  let Y' : ℕᵒᵖ ⥤ Profinite := (Functor.const _).obj Y
-  -- now build the maps Y → S n inductively
 
   sorry
