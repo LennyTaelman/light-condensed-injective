@@ -34,15 +34,13 @@ lemma clopen_of_closed_subset_open (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen 
   choose V hV using fun (z : Z) ↦ compact_exists_isClopen_in_isOpen hU (hZU z.property)
   -- the V z cover Z
   have V_cover : Z ⊆ iUnion V := fun z hz ↦ mem_iUnion.mpr ⟨⟨z, hz⟩, (hV ⟨z, hz⟩).2.1⟩
-  -- the V z are open and closed
-  have V_open : ∀ z : Subtype Z, IsOpen (V z) := fun z ↦ (hV z).1.2
-  have V_clopen : ∀ z : Subtype Z, IsClopen (V z) := fun z ↦ (hV z).1
-  -- there is a finite subcover, let C be its union; this does the job
-  have Z_compact := IsClosed.isCompact hZ
-  choose I hI using IsCompact.elim_finite_subcover Z_compact V V_open V_cover
+  -- there is a finite subcover
+  choose I hI using IsCompact.elim_finite_subcover (IsClosed.isCompact hZ)
+    V (fun z ↦ (hV z).1.2) V_cover
+  -- the union C of this finite subcover does the job
   let C := ⋃ (i ∈ I), V i
   have C_clopen : IsClopen C := Finite.isClopen_biUnion (Finset.finite_toSet I)
-    (fun i _ ↦ V_clopen i)
+    (fun i _ ↦ (hV i).1)
   have C_subset_U : C ⊆ U := by simp_all only [iUnion_subset_iff, C, implies_true]
   exact ⟨C, C_clopen, hI, C_subset_U⟩
 
