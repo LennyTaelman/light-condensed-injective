@@ -331,40 +331,20 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   constructor
   intro X Y g f h
 
-  -- write S as sequential limit of finite discrete spaces
-  -- -- play a bit with applying the key lifting lemma
-  -- let (n: ℕ) := 5
-  -- #check S.component n
-  -- #check (S.proj n : S ⟶ S.component n)
-
-  -- have gn : X ⟶ S.component n := g ≫ (S.proj n)
-  -- have gn_cont : Continuous gn.toFun := gn.continuous_toFun
-  -- have gnsucc : X ⟶ S.component (n+1) := g ≫ (S.proj n.succ)
-  -- have gnsucc_cont : Continuous gnsucc.toFun := gnsucc.continuous_toFun
-
-  -- let's do the first step by hand: construct k0 : Y ⟶ S0
-  let S0 := lightToProfinite.obj (S.component 0)
-  haveI : Nonempty S0 := Nonempty.map (S.proj 0).toFun inferInstance
-  haveI : Finite S0 := by unfold S0; dsimp; exact inferInstance
-  let g0 : X ⟶ S0 := g ≫ (S.proj 0)
-  obtain ⟨k0, h_fk0⟩ :=  (injective_of_finite S0).factors g0 f
-
-
-  -- warming up: first induction step by hand: construct k1 : Y ⟶ S1
-  let S1 := lightToProfinite.obj (S.component 1)
-  haveI : Nonempty S1 := Nonempty.map (S.proj 1).toFun inferInstance
-  haveI : Finite S1 := by unfold S1; dsimp; exact inferInstance
-  let g1 : X ⟶ S1 := g ≫ (S.proj 1)
-  let p0 : S1 ⟶ S0 := S.transitionMap 0
-  haveI : Epi p0 := (Profinite.epi_iff_surjective p0).mpr (S.surjective_transitionMap 0)
-  have h_comm0 : f ≫ k0 = g1 ≫ p0 := by
-    rw [h_fk0]
-    unfold g0 g1
-    exact congrArg _ (S.proj_comp_transitionMap 0).symm
-  obtain ⟨k1, h1, h2⟩ := key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0
-  let k1' := Classical.choose (key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0)
+  -- write S = lim S' n
   let S' (n : ℕ) := lightToProfinite.obj (S.component n)
   haveI (n : ℕ) : Finite (S' n) := by unfold S'; dsimp; exact inferInstance
+  haveI : Nonempty (S' 0) := Nonempty.map (S.proj 0).toFun inferInstance
+
+  -- base step of the induction
+  let g0 : X ⟶ S' 0 := g ≫ (S.proj 0)
+  obtain ⟨k0, h_fk0⟩ :=  (injective_of_finite (S' 0)).factors g0 f
+
+
+  -- have h_comm0 : f ≫ k0 = g1 ≫ p0 := by
+  --   rw [h_fk0]
+  --   unfold g0 g1
+  --   exact congrArg _ (S.proj_comp_transitionMap 0).symm
   let p (n : ℕ) : S' (n+1) ⟶ S' n := S.transitionMap n
   haveI (n : ℕ) : Epi (p n) := (Profinite.epi_iff_surjective (p n)).mpr (S.surjective_transitionMap n)
   let k (n : ℕ) : Y ⟶ S' n := match n with
