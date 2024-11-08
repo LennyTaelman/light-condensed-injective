@@ -22,13 +22,14 @@ noncomputable section
 
 
 universe u
-variable (X : Type u) [TopologicalSpace X] [CompactSpace X] [T2Space X] [TotallyDisconnectedSpace X]
+
 
 open Set
 
 -- For every closed ⊆ open in a profinite, there is an intermediate clopen
 
-lemma clopen_of_closed_subset_open (Z U : Set X) (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z ⊆ U) :
+lemma clopen_of_closed_subset_open  (X : Profinite.{u}) (Z U : Set X)
+    (hZ : IsClosed Z) (hU : IsOpen U) (hZU : Z ⊆ U) :
     ∃ C : Set X, IsClopen C ∧ Z ⊆ C ∧ C ⊆ U := by
   -- every z ∈ Z has clopen neighborhood V z ⊆ U
   choose V hV using fun (z : Z) ↦ compact_exists_isClopen_in_isOpen hU (hZU z.property)
@@ -54,8 +55,8 @@ open Fin
   with the C i disjoint, and such that ∪ C i = ∪ D i
 -/
 
-lemma clopen_partition_of_disjoint_closeds_in_clopens (n : ℕ)
-    (Z : Fin n → Set X) (D : Fin n → Set X)
+lemma clopen_partition_of_disjoint_closeds_in_clopens
+    (X : Profinite.{u}) (n : ℕ) (Z : Fin n → Set X) (D : Fin n → Set X)
     (Z_closed : ∀ i, IsClosed (Z i)) (D_clopen : ∀ i, IsClopen (D i))
     (Z_subset_D : ∀ i, Z i ⊆ D i) (Z_disj : ∀ i j, i < j → Disjoint (Z i) (Z j) ) :
     ∃ C : Fin n → Set X, (∀ i, IsClopen (C i)) ∧ (∀ i, Z i ⊆ C i) ∧ (∀ i, C i ⊆ D i) ∧
@@ -151,12 +152,12 @@ lemma clopen_partition_of_disjoint_closeds_in_clopens (n : ℕ)
 /-
   this is the key statement for the inductive proof of injectivity. Given
   a commutative square
-      X -f->  Y
-      |g      |g'
-      v       v
-      S -f'-> T
+      X >-f->  Y
+      |g       |g'
+      v        v
+      S -f'->> T
   where Y is profinite, S is finite, f is injective and f' is surjective,
-  there exists a diagonal map k : Y --> S making diagram commute.
+  there exists a diagonal map k : Y → S making diagram commute.
 -/
 
 
@@ -168,7 +169,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   ∃ k : Y → S, (Continuous k) ∧ (f' ∘ k = g') ∧ (k ∘ f = g)  := by
 
   -- help the instance inference a bit: T is finite
-  have _ : Finite T := Finite.of_surjective f' f'_surj
+  letI : Finite T := Finite.of_surjective f' f'_surj
   -- pick bijection between Fin n and S
   obtain ⟨n, φ, ψ, h1, h2⟩ := Finite.exists_equiv_fin S
   -- define Z i to be the image of the fiber of g at i
@@ -194,8 +195,8 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
     convert rfl
     exact (eq_of_mem_singleton hx1).symm
   have D_cover_univ : univ ⊆ (⋃ i, D i) := by
-    intro y hy
-    simp
+    intro y _
+    simp only [mem_iUnion]
     obtain ⟨s, hs⟩ := f'_surj (g' y)
     use φ s
     rw [mem_preimage, h1]
@@ -282,7 +283,7 @@ lemma key_lifting_lemma' (X Y S T : Profinite.{u}) [Finite S]
 
 -- warming up exercise: nonempty finite discrete spaces are injective in profinite spaces
 
-lemma injective_of_finite' (S : Profinite.{u}) [S_ne : Nonempty S] [Finite S]:
+lemma injective_of_finite (S : Profinite.{u}) [Nonempty S] [Finite S]:
   Injective (S) := by
   constructor
   intro X Y g f f_mono
@@ -303,6 +304,12 @@ open Opposite Nat
 
 
 
+variable (C : Type) [Category C] (X Y Z T : C) (f : X ⟶ Y) (g : Y ⟶ Z) (h : Z ⟶ T)
+example : f ≫ (g ≫ h) = (f ≫ g) ≫ h := by simp
+example : f ≫ (g ≫ h) = (f ≫ g) ≫ h := by exact Eq.symm (Category.assoc f g h)
+
+
+
 -- this is the target theorem!
 -- warning: S.component 0 will not be a one point space, even when S is Nonempty,
 -- so first step of induction will be a bit more complicated
@@ -310,30 +317,45 @@ open Opposite Nat
 
 
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
-  -- Injective (lightToProfinite.obj S) := by
-  Injective S := by
+  Injective (lightToProfinite.obj S) := by
+  -- Injective S := by
   constructor
   intro X Y g f h
-  have f_inj : Function.Injective f.toFun := (mono_iff_injective f).mp h
+
   -- write S as sequential limit of finite discrete spaces
-  -- play a bit with applying the key lifting lemma
-  let (n: ℕ) := 5
-  #check S.component n
-  #check (S.proj n : S ⟶ S.component n)
+  -- -- play a bit with applying the key lifting lemma
+  -- let (n: ℕ) := 5
+  -- #check S.component n
+  -- #check (S.proj n : S ⟶ S.component n)
 
-  have gn : X ⟶ S.component n := g ≫ (S.proj n)
-  have gn_cont : Continuous gn.toFun := gn.continuous_toFun
-  have gnsucc : X ⟶ S.component (n+1) := g ≫ (S.proj n.succ)
-  have gnsucc_cont : Continuous gnsucc.toFun := gnsucc.continuous_toFun
+  -- have gn : X ⟶ S.component n := g ≫ (S.proj n)
+  -- have gn_cont : Continuous gn.toFun := gn.continuous_toFun
+  -- have gnsucc : X ⟶ S.component (n+1) := g ≫ (S.proj n.succ)
+  -- have gnsucc_cont : Continuous gnsucc.toFun := gnsucc.continuous_toFun
 
-  -- let's do the first step by hand
-  let T := S.component 0
-  let T_ne : Nonempty T := Nonempty.map (S.proj 0).toFun inferInstance
-  have g0 : X ⟶ T := g ≫ (S.proj 0)
+  -- let's do the first step by hand: construct k0 : Y ⟶ S0
+  let S0 := lightToProfinite.obj (S.component 0)
+  haveI : Nonempty S0 := Nonempty.map (S.proj 0).toFun inferInstance
+  haveI : Finite S0 := by unfold S0; dsimp; exact inferInstance
+  let g0 : X ⟶ S0 := g ≫ (S.proj 0)
+  obtain ⟨k0, h_fk0⟩ :=  (injective_of_finite S0).factors g0 f
 
 
+  -- warming up: first induction step by hand: construct k1 : Y ⟶ S1
+  let S1 := lightToProfinite.obj (S.component 1)
+  haveI : Nonempty S1 := Nonempty.map (S.proj 1).toFun inferInstance
+  haveI : Finite S1 := by unfold S1; dsimp; exact inferInstance
+  let g1 : X ⟶ S1 := g ≫ (S.proj 1)
+  let p0 : S1 ⟶ S0 := S.transitionMap 0
+  haveI : Epi p0 := (Profinite.epi_iff_surjective p0).mpr (S.surjective_transitionMap 0)
+  have h_comm0 : f ≫ k0 = g1 ≫ p0 := by
+    rw [h_fk0]
+    unfold g0 g1
+    exact congrArg _ (S.proj_comp_transitionMap 0).symm
+  obtain ⟨k, h1, h2⟩ := key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0
 
 
-  let S_diagr := S.toLightDiagram
+  -- ok, we should be good to set up an induction loop now!
+  -- first think of good naming scheme -- on paper;
 
   sorry
