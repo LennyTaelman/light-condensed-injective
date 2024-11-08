@@ -313,17 +313,31 @@ open Opposite Nat
 
 
 
-variable (C : Type) [Category C] (X Y Z T : C) (f : X ⟶ Y) (g : Y ⟶ Z) (h : Z ⟶ T)
-example : f ≫ (g ≫ h) = (f ≫ g) ≫ h := by simp
-example : f ≫ (g ≫ h) = (f ≫ g) ≫ h := by exact Eq.symm (Category.assoc f g h)
 
 
+/-
+  Induction step:
 
--- this is the target theorem!
--- warning: S.component 0 will not be a one point space, even when S is Nonempty,
--- so first step of induction will be a bit more complicated
+      X        --f-->  Y
+      |g' (n+1)        |k n
+      v                v
+      S' (n+1) --p n-> S' n
 
-#check Nat.add
+  find k n+1 : Y ⟶ S' (n+1) making both diagrams commute. That is:
+   - h_up n+1 : k (n+1) ≫ p n = k n   **** recursive, requires k n
+   - h_down n+1 : f ≫ k (n+1) = g' (n+1)
+  Construction of k (n+1) through lifting lemma requires as input:
+   - h_comm n : g' (n+1) ≫ p n = f ≫ k n, which can be obtained from h_down n
+
+  NOT SO BAD: h_up not used in the construction! Can be proved *after* the definition
+  So constuct pairs: ⟨ k n, h_down n ⟩, and then prove h_up n+1
+
+  use hypothesis: ∃ k : Y ⟶ S' n, f ≫ k = g' n → ∃ k' : Y ⟶ S' (n+1), f ≫ k' = g' (n+1)
+  h (n : ℕ) (k : Y ⟶ S' n) (h_down : f ≫ k = g' n) : ∃ k' : Y ⟶ S' (n+1), f ≫ k' = g' (n+1) :=
+
+-/
+
+
 
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   Injective (lightToProfinite.obj S) := by
@@ -331,25 +345,38 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   constructor
   intro X Y g f h
 
-  -- write S = lim S' n
+  -- write S = lim S' n, with epic transition maps p n : S' (n+1) ⟶ S' n
   let S' (n : ℕ) := lightToProfinite.obj (S.component n)
   haveI (n : ℕ) : Finite (S' n) := by unfold S'; dsimp; exact inferInstance
   haveI : Nonempty (S' 0) := Nonempty.map (S.proj 0).toFun inferInstance
-
-  -- base step of the induction
-  let g0 : X ⟶ S' 0 := g ≫ (S.proj 0)
-  obtain ⟨k0, h_fk0⟩ :=  (injective_of_finite (S' 0)).factors g0 f
-
-
-  -- have h_comm0 : f ≫ k0 = g1 ≫ p0 := by
-  --   rw [h_fk0]
-  --   unfold g0 g1
-  --   exact congrArg _ (S.proj_comp_transitionMap 0).symm
   let p (n : ℕ) : S' (n+1) ⟶ S' n := S.transitionMap n
   haveI (n : ℕ) : Epi (p n) := (Profinite.epi_iff_surjective (p n)).mpr (S.surjective_transitionMap n)
-  let k (n : ℕ) : Y ⟶ S' n := match n with
-    | 0 => k0
-    | n+1 => Classical.choose (key_lifting_lemma' X Y (S' (n+1)) (S' n) f (p n) (g ≫ (S.proj (n+1))) (k n) _)
+  let g' (n : ℕ) : X ⟶ S' n := g ≫ (S.proj n)
+
+  -- base step of the induction
+  obtain ⟨k0, h_down0⟩ :=  (injective_of_finite (S' 0)).factors (g' 0) f
+  have h_comm0 : f ≫ k0 = (g' 1) ≫ p 0 := by
+    rw [h_down0]
+    unfold g'
+    exact congrArg _ (S.proj_comp_transitionMap 0).symm
+
+  -- key part of induction step:
+  -- TODO: add conclusion that k' lifts k
+  have h_step (n : ℕ) (k : Y ⟶ S' n) (h_down : f ≫ k = g' n) :
+    ∃ k' : Y ⟶ S' (n+1), f ≫ k' = g' (n+1) := by
+    have h_comm : f ≫ k = g' (n+1) ≫ p n := by
+      rw [h_down]
+      unfold g'
+      exact congrArg _ (S.proj_comp_transitionMap n).symm
+    obtain ⟨k', _, h2⟩ := key_lifting_lemma' X Y (S' (n+1)) (S' n) f (p n) (g' (n+1)) k h_comm
+    exact ⟨k', h2⟩
+
+  let rec k_lift : (n : Nat) → { k : Y ⟶ S' n // f ≫ k = g' n } := fun
+    | 0 => ⟨k0, h_down0⟩
+    | Nat.succ n => ⟨Classical.choose (h_step n (k_lift n).val (k_lift n).property),
+        Classical.choose_spec (h_step n (k_lift n).val (k_lift n).property)⟩
+
+  -- define k : Y ⟶ S as the limit of the k_lift n
 
 
 
