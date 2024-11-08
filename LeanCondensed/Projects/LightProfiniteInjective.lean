@@ -291,6 +291,15 @@ lemma injective_of_finite (S : Profinite.{u}) [Nonempty S] [Finite S]:
   let f' := Limits.terminalIsTerminal.from S
   let g' := Limits.terminalIsTerminal.from Y
   have f'_epi : Epi f' := by
+    -- maybe try to show surjectivity instead?
+    rw [Profinite.epi_iff_surjective f']
+    intro t
+    -- choose any a in S
+    let a : S  := Nonempty.some inferInstance
+    use a
+    unfold f'
+    unfold Limits.terminalIsTerminal
+
     sorry
   obtain ⟨k, _, h2⟩ := key_lifting_lemma' X Y S _ f f' g g' (Limits.terminal.hom_ext _ _)
   exact ⟨k, h2⟩
