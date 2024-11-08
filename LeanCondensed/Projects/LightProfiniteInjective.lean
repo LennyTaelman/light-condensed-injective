@@ -314,7 +314,7 @@ example : f ≫ (g ≫ h) = (f ≫ g) ≫ h := by exact Eq.symm (Category.assoc 
 -- warning: S.component 0 will not be a one point space, even when S is Nonempty,
 -- so first step of induction will be a bit more complicated
 
-
+#check Nat.add
 
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   Injective (lightToProfinite.obj S) := by
@@ -352,7 +352,14 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
     rw [h_fk0]
     unfold g0 g1
     exact congrArg _ (S.proj_comp_transitionMap 0).symm
-  obtain ⟨k, h1, h2⟩ := key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0
+  obtain ⟨k1, h1, h2⟩ := key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0
+  let k1' := Classical.choice (key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0)
+  let S (n : ℕ) := lightToProfinite.obj (S.component n)
+  let k (n : ℕ) : Y ⟶ S n := match n with
+    | 0 => k0
+    | n+1 => sorry
+
+
 
 
   -- ok, we should be good to set up an induction loop now!
