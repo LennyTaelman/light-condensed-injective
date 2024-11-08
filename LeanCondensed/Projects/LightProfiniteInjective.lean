@@ -362,11 +362,14 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
     unfold g0 g1
     exact congrArg _ (S.proj_comp_transitionMap 0).symm
   obtain ⟨k1, h1, h2⟩ := key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0
-  let k1' := Classical.choice (key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0)
-  let S (n : ℕ) := lightToProfinite.obj (S.component n)
-  let k (n : ℕ) : Y ⟶ S n := match n with
+  let k1' := Classical.choose (key_lifting_lemma' X Y S1 S0 f p0 g1 k0 h_comm0)
+  let S' (n : ℕ) := lightToProfinite.obj (S.component n)
+  haveI (n : ℕ) : Finite (S' n) := by unfold S'; dsimp; exact inferInstance
+  let p (n : ℕ) : S' (n+1) ⟶ S' n := S.transitionMap n
+  haveI (n : ℕ) : Epi (p n) := (Profinite.epi_iff_surjective (p n)).mpr (S.surjective_transitionMap n)
+  let k (n : ℕ) : Y ⟶ S' n := match n with
     | 0 => k0
-    | n+1 => sorry
+    | n+1 => Classical.choose (key_lifting_lemma' X Y (S' (n+1)) (S' n) f (p n) (g ≫ (S.proj (n+1))) (k n) _)
 
 
 
