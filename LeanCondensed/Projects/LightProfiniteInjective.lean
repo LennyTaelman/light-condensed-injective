@@ -361,20 +361,53 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
     exact congrArg _ (S.proj_comp_transitionMap 0).symm
 
   -- key part of induction step:
-  -- TODO: add conclusion that k' lifts k
   have h_step (n : ℕ) (k : Y ⟶ S' n) (h_down : f ≫ k = g' n) :
-    ∃ k' : Y ⟶ S' (n+1), f ≫ k' = g' (n+1) := by
+    ∃ k' : Y ⟶ S' (n+1), k' ≫ p n = k ∧ f ≫ k' = g' (n+1) := by
     have h_comm : f ≫ k = g' (n+1) ≫ p n := by
       rw [h_down]
       unfold g'
       exact congrArg _ (S.proj_comp_transitionMap n).symm
-    obtain ⟨k', _, h2⟩ := key_lifting_lemma' X Y (S' (n+1)) (S' n) f (p n) (g' (n+1)) k h_comm
-    exact ⟨k', h2⟩
+    exact key_lifting_lemma' X Y (S' (n+1)) (S' n) f (p n) (g' (n+1)) k h_comm
+
+  let next (n : ℕ) : { k : Y ⟶ S' n // f ≫ k = g' n } → { k : Y ⟶ S' (n+1) // f ≫ k = g' (n+1) } :=
+    fun k ↦ ⟨Classical.choose (h_step n k.val k.property), (Classical.choose_spec (h_step n k.val k.property)).2⟩
 
   let rec k_lift : (n : Nat) → { k : Y ⟶ S' n // f ≫ k = g' n } := fun
-    | 0 => ⟨k0, h_down0⟩
-    | Nat.succ n => ⟨Classical.choose (h_step n (k_lift n).val (k_lift n).property),
-        Classical.choose_spec (h_step n (k_lift n).val (k_lift n).property)⟩
+  | 0 => ⟨k0, h_down0⟩
+  | Nat.succ n => ⟨Classical.choose (h_step n (k_lift n).val (k_lift n).property),
+      (Classical.choose_spec (h_step n (k_lift n).val (k_lift n).property)).2⟩
+
+  let rec k_lift' : (n : Nat) → { k : Y ⟶ S' n // f ≫ k = g' n } := fun
+  | 0 => ⟨k0, h_down0⟩
+  | Nat.succ n => next n (k_lift' n)
+
+  have h_up (n : ℕ) : (k_lift' (n+1)).val ≫ p n = (k_lift' n).val := by
+    induction' n with n ih
+    · dsimp
+      -- unfold k_lift' -- TODO understand why this does not unfold!
+      sorry
+    · sorry
+
+  let rec test : Nat → Nat
+  | 0 => 0
+  | n+1 => test n + 1
+
+  have h_test (n : Nat) : test n = n := by
+    induction' n with n ih
+    · unfold test
+      dsimp
+
+      sorry
+    · sorry
+
+  let rec fib : Nat → Nat
+  | 0 => 0
+  | 1 => 1
+  | n+2 => fib n + fib (n+1)
+
+
+
+  sorry
 
   -- define k : Y ⟶ S as the limit of the k_lift n
 
@@ -385,3 +418,34 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   -- first think of good naming scheme -- on paper;
 
   sorry
+
+
+
+def fib : Nat → Nat
+  | 0 => 0
+  | 1 => 1
+  | .succ (.succ n) => fib n + fib (.succ n)
+
+example : fib 5 = 5 := by
+  unfold fib
+  unfold fib
+  unfold fib
+  unfold fib
+  unfold fib
+  exact rfl
+
+  sorry
+
+
+-- TODO: understand why this works with "def", but not with "let rec"!
+
+def test : Nat → Nat
+  | 0 => 0
+  | n+1 => test n + 1
+
+example (n : ℕ) : test n = n := by
+  induction' n with n ih
+  · unfold test
+    rfl
+  · unfold test
+    linarith
