@@ -283,24 +283,20 @@ lemma key_lifting_lemma' (X Y S T : Profinite.{u}) [Finite S]
 
 -- warming up exercise: nonempty finite discrete spaces are injective in profinite spaces
 
+lemma to_final_epi (X : Profinite.{u}) [Nonempty X] :
+    Epi (Limits.terminalIsTerminal.from X) := by
+
+  sorry
+
+
 lemma injective_of_finite (S : Profinite.{u}) [Nonempty S] [Finite S]:
-  Injective (S) := by
+    Injective (S) := by
   constructor
   intro X Y g f f_mono
   -- let f' : S ⟶ pt and g' : Y ⟶ pt be the unique maps
   let f' := Limits.terminalIsTerminal.from S
   let g' := Limits.terminalIsTerminal.from Y
-  have f'_epi : Epi f' := by
-    -- maybe try to show surjectivity instead?
-    rw [Profinite.epi_iff_surjective f']
-    intro t
-    -- choose any a in S
-    let a : S  := Nonempty.some inferInstance
-    use a
-    unfold f'
-    unfold Limits.terminalIsTerminal
-
-    sorry
+  haveI : Epi f' := to_final_epi S
   obtain ⟨k, _, h2⟩ := key_lifting_lemma' X Y S _ f f' g g' (Limits.terminal.hom_ext _ _)
   exact ⟨k, h2⟩
 
