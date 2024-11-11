@@ -5,6 +5,7 @@ Authors: Lenny Taelman
 import Mathlib.CategoryTheory.Preadditive.Injective
 import Mathlib.Topology.Category.Profinite.Basic
 import Mathlib.Topology.Category.LightProfinite.AsLimit
+import Mathlib.CategoryTheory.Functor.OfSequence
 
 
 -- import LeanCondensed.Mathlib.Condensed.Light.Limits
@@ -336,6 +337,25 @@ open Opposite Nat
 namespace LightProfinite
 open Limits
 
+
+/- silly hack; I don't seem to manage to call NatTrans.ofOpSequence directly from Functor.OfSequence
+  so copying the definition here
+-/
+variable {C : Type*} [Category C] {F G : ℕᵒᵖ ⥤ C} (app : ∀ (n : ℕ), F.obj ⟨n⟩ ⟶ G.obj ⟨n⟩)
+  (naturality : ∀ (n : ℕ), F.map (homOfLE (n.le_add_right 1)).op ≫ app n =
+      app (n + 1) ≫ G.map (homOfLE (n.le_add_right 1)).op)
+
+@[simps!]
+def ofOpSequence : F ⟶ G where
+  app n := app n.unop
+  naturality _ _ f := by
+    let φ : G.rightOp ⟶ F.rightOp := NatTrans.ofSequence (fun n ↦ (app n).op)
+      (fun n ↦ Quiver.Hom.unop_inj (naturality n).symm)
+    exact Quiver.Hom.op_inj (φ.naturality f.unop).symm
+
+
+-- now we can finally prove the main theorem
+
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   Injective (lightToProfinite.obj S) := by
   -- Injective S := by
@@ -371,23 +391,18 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
     fun k ↦ ⟨Classical.choose (h_step n k.val k.property),
       (Classical.choose_spec (h_step n k.val k.property)).2⟩
   let k_lift (n : Nat) : { k : Y ⟶ S' n // f ≫ k = g' n } := Nat.rec ⟨k0, h_down0⟩ next n
-  let k' (n : ℕ) := (k_lift n).val
-  have h_down (n : ℕ) : f ≫ k' n = g' n := (k_lift n).property
+  have h_down (n : ℕ) : f ≫ (k_lift n).val = g' n := (k_lift n).property
   have h_up (n : ℕ) : (k_lift (n+1)).val ≫ p n = (k_lift n).val := by
     induction' n with n ih
     · exact (Classical.choose_spec (h_step 0 k0 h_down0)).1
     · exact (Classical.choose_spec (h_step (n+1) (k_lift (n+1)).val (k_lift (n+1)).property)).1
   -- have h_up_iter (n)
   -- the k' n assemble to a natural transformation π : cst Y ⟶ S
-  let Ycst := (Functor.const ℕᵒᵖ).obj Y
-  let π : Ycst ⟶ S.diagram ⋙ lightToProfinite := {
-    app := fun (op n) ↦ k' n,
-    naturality := fun (op n) (op m) hnm ↦ by
-      unfold Ycst
-      simp
-      -- there should be a lemma reducing this to one-step transition maps?
-      sorry
-  }
+  let Ycst : ℕᵒᵖ ⥤ Profinite.{u} := (Functor.const ℕᵒᵖ).obj Y
+  let Sprof := S.diagram ⋙ lightToProfinite.{u}
+  let π : Ycst ⟶ Sprof := ofOpSequence (fun n ↦ (k_lift n).val) (fun n ↦ (h_up n).symm)
+
+
   let k_cone : Cone (S.diagram ⋙ lightToProfinite) :=
     { pt := Y, π := π }
 
