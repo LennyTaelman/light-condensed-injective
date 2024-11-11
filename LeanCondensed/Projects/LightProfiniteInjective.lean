@@ -334,7 +334,7 @@ open Opposite Nat
 -/
 
 namespace LightProfinite
-
+open Limits
 
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
   Injective (lightToProfinite.obj S) := by
@@ -377,6 +377,22 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
     induction' n with n ih
     · exact (Classical.choose_spec (h_step 0 k0 h_down0)).1
     · exact (Classical.choose_spec (h_step (n+1) (k_lift (n+1)).val (k_lift (n+1)).property)).1
+  -- have h_up_iter (n)
+  -- the k' n assemble to a natural transformation π : cst Y ⟶ S
+  let Ycst := (Functor.const ℕᵒᵖ).obj Y
+  let π : Ycst ⟶ S.diagram ⋙ lightToProfinite := {
+    app := fun (op n) ↦ k' n,
+    naturality := fun (op n) (op m) hnm ↦ by
+      unfold Ycst
+      simp
+      -- there should be a lemma reducing this to one-step transition maps?
+      sorry
+  }
+  let k_cone : Cone (S.diagram ⋙ lightToProfinite) :=
+    { pt := Y, π := π }
+
+
+  -- let k := IsLimit.lift (fun n => k' n)
 
 
   -- define k : Y ⟶ S as the limit of the k' n, using the universal property of the limit
