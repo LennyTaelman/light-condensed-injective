@@ -281,6 +281,23 @@ lemma key_lifting_lemma' (X Y S T : Profinite.{u}) [Finite S]
   exact ⟨⟨k_fun, k_cont⟩, ConcreteCategory.hom_ext_iff.mpr (congrFun h2),
     ConcreteCategory.hom_ext_iff.mpr (congrFun h3)⟩
 
+lemma key_lifting_lemma'' (X Y S T : LightProfinite.{u}) [Finite S]
+  (f : X ⟶ Y) [Mono f] (f' : S ⟶ T) [Epi f']
+  (g : X ⟶ S) (g' : Y ⟶ T) (h_comm : f ≫ g' = g ≫ f') :
+  ∃ k : Y ⟶ S, (k ≫ f' = g') ∧ (f ≫ k = g)  := by
+  haveI : Finite (lightToProfinite.obj S).toTop := by sorry
+  have h_comm' : (f ≫ g').toFun = (g ≫ f').toFun := congrArg _ h_comm
+  obtain ⟨k_fun, k_cont, h2, h3⟩ := key_lifting_lemma
+    (lightToProfinite.obj X)
+    (lightToProfinite.obj Y)
+    (lightToProfinite.obj S)
+    (lightToProfinite.obj T)
+    f.toFun f.continuous ((mono_iff_injective f).mp inferInstance)
+    f'.toFun ((LightProfinite.epi_iff_surjective f').mp inferInstance)
+    g.toFun g.continuous g'.toFun g'.continuous h_comm'
+  exact ⟨⟨k_fun, k_cont⟩, ConcreteCategory.hom_ext_iff.mpr (congrFun h2),
+    ConcreteCategory.hom_ext_iff.mpr (congrFun h3)⟩
+
 
 -- warming up exercise: nonempty finite discrete spaces are injective in profinite spaces
 
@@ -290,18 +307,20 @@ lemma to_final_epi (X : Profinite.{u}) [Nonempty X] :
   sorry
 
 
-lemma injective_of_finite (S : Profinite.{u}) [Nonempty S] [Finite S]:
+lemma injective_of_finite (S : LightProfinite.{u}) [Nonempty S] [Finite S]:
     Injective (S) := by
   constructor
   intro X Y g f f_mono
-  -- let f' : S ⟶ pt and g' : Y ⟶ pt be the unique maps
-  let f' := Limits.terminalIsTerminal.from S
-  let g' := Limits.terminalIsTerminal.from Y
-  haveI : Epi f' := to_final_epi S
-  obtain ⟨k, _, h2⟩ := key_lifting_lemma' X Y S _ f f' g g' (Limits.terminal.hom_ext _ _)
+  let S' := lightToProfinite.obj S
+  let f' := lightToProfinite.map f
+  haveI : Nonempty S' := by simp_all only [toCompHausLike_obj, coe_of, S']
+  haveI : Finite S' := by simp_all only [toCompHausLike_obj, coe_of, S']
+  haveI : Mono f' := Functor.map_mono lightToProfinite f
+  let f'' := Limits.terminalIsTerminal.from S'
+  haveI : Epi  f'' := to_final_epi S'
+  let g' := Limits.terminalIsTerminal.from (lightToProfinite.obj Y)
+  obtain ⟨k, _, h2⟩ := key_lifting_lemma' _ _ S' _ f' f'' g g' (Limits.terminal.hom_ext _ _)
   exact ⟨k, h2⟩
-
-
 
 
 
@@ -356,55 +375,51 @@ def ofOpSequence : F ⟶ G where
 
 -- now we can finally prove the main theorem
 
-theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
-  Injective (lightToProfinite.obj S) := by
-  -- Injective S := by
+theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S := by
   constructor
   intro X Y g f h
 
-  -- write S = lim S' n, with epic transition maps p n : S' (n+1) ⟶ S' n
-  let S' (n : ℕ) := lightToProfinite.obj (S.component n)
-  haveI (n : ℕ) : Finite (S' n) := by unfold S'; dsimp; exact inferInstance
-  haveI : Nonempty (S' 0) := Nonempty.map (S.proj 0).toFun inferInstance
-  let p (n : ℕ) : S' (n+1) ⟶ S' n := S.transitionMap n
-  haveI (n : ℕ) : Epi (p n) := (Profinite.epi_iff_surjective (p n)).mpr (S.surjective_transitionMap n)
-  let g' (n : ℕ) : X ⟶ S' n := g ≫ (S.proj n)
+  haveI (n : ℕ) : Finite (S.component n) := by unfold component; dsimp; exact inferInstance
+  haveI : Nonempty (S.component 0) := Nonempty.map (S.proj 0).toFun inferInstance
+  haveI (n : ℕ) : Epi (S.transitionMap n) := (LightProfinite.epi_iff_surjective _).mpr
+    (S.surjective_transitionMap n)
 
   -- base step of the induction
-  obtain ⟨k0, h_down0⟩ :=  (injective_of_finite (S' 0)).factors (g' 0) f
-  have h_comm0 : f ≫ k0 = (g' 1) ≫ p 0 := by
+  obtain ⟨k0, h_down0⟩ :=  (injective_of_finite (S.component 0)).factors (g ≫ S.proj 0) f
+  have h_comm0 : f ≫ k0 = g ≫ S.proj 1 ≫ S.transitionMap 0 := by
     rw [h_down0]
-    unfold g'
     exact congrArg _ (S.proj_comp_transitionMap 0).symm
 
   -- key part of induction step:
-  have h_step (n : ℕ) (k : Y ⟶ S' n) (h_down : f ≫ k = g' n) :
-    ∃ k' : Y ⟶ S' (n+1), k' ≫ p n = k ∧ f ≫ k' = g' (n+1) := by
-    have h_comm : f ≫ k = g' (n+1) ≫ p n := by
+  have h_step (n : ℕ) (k : Y ⟶ S.component n) (h_down : f ≫ k = g ≫ S.proj n) :
+    ∃ k' : Y ⟶ S.component (n+1), k' ≫ S.transitionMap n = k ∧ f ≫ k' = g ≫ S.proj (n+1) := by
+    have h_comm : f ≫ k = g ≫ S.proj (n+1) ≫ S.transitionMap n := by
       rw [h_down]
-      unfold g'
       exact congrArg _ (S.proj_comp_transitionMap n).symm
-    exact key_lifting_lemma' X Y (S' (n+1)) (S' n) f (p n) (g' (n+1)) k h_comm
+    exact key_lifting_lemma'' _ _ _ _ f (S.transitionMap n) (g ≫ (S.proj (n+1))) k h_comm
 
-  -- construct compatible family of maps k' n : Y ⟶ S' n
-  let next (n : ℕ) : { k : Y ⟶ S' n // f ≫ k = g' n } → { k : Y ⟶ S' (n+1) // f ≫ k = g' (n+1) } :=
+  -- construct compatible family of maps k_seq n : Y ⟶ S.component n
+  let lifts (n : ℕ) := { k : Y ⟶ S.component n // f ≫ k = g ≫ S.proj n }
+  let next (n : ℕ) : lifts n → lifts (n+1) :=
     fun k ↦ ⟨Classical.choose (h_step n k.val k.property),
       (Classical.choose_spec (h_step n k.val k.property)).2⟩
-  let k_lift (n : Nat) : { k : Y ⟶ S' n // f ≫ k = g' n } := Nat.rec ⟨k0, h_down0⟩ next n
-  have h_down (n : ℕ) : f ≫ (k_lift n).val = g' n := (k_lift n).property
-  have h_up (n : ℕ) : (k_lift (n+1)).val ≫ p n = (k_lift n).val := by
+  let k_seq (n : Nat) : lifts n := Nat.rec ⟨k0, h_down0⟩ next n
+  have h_down (n : ℕ) : f ≫ (k_seq n).val = g ≫ S.proj n := (k_seq n).property
+  have h_up (n : ℕ) : (k_seq (n+1)).val ≫ S.transitionMap n = (k_seq n).val := by
     induction' n with n ih
     · exact (Classical.choose_spec (h_step 0 k0 h_down0)).1
-    · exact (Classical.choose_spec (h_step (n+1) (k_lift (n+1)).val (k_lift (n+1)).property)).1
-  -- have h_up_iter (n)
-  -- the k' n assemble to a natural transformation π : cst Y ⟶ S
-  let Ycst : ℕᵒᵖ ⥤ Profinite.{u} := (Functor.const ℕᵒᵖ).obj Y
-  let Sprof := S.diagram ⋙ lightToProfinite.{u}
-  let π : Ycst ⟶ Sprof := ofOpSequence (fun n ↦ (k_lift n).val) (fun n ↦ (h_up n).symm)
+    · exact (Classical.choose_spec (h_step (n+1) (k_seq (n+1)).val (k_seq (n+1)).property)).1
+  let k_cone : Cone S.diagram :=
+    { pt := Y, π := ofOpSequence (fun n ↦ (k_seq n).val) (fun n ↦ (h_up n).symm) }
+
+  -- now the induced map Y ⟶ S = lim S.component is the desired map
+  use S.asLimit.lift k_cone
+  dsimp
 
 
-  let k_cone : Cone (S.diagram ⋙ lightToProfinite) :=
-    { pt := Y, π := π }
+
+
+
 
 
   -- let k := IsLimit.lift (fun n => k' n)
@@ -418,5 +433,64 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]:
 
 
   sorry
+
+
+-- theorem injective_of_light' (S : LightProfinite.{u}) [Nonempty S]:
+--   Injective (lightToProfinite.obj S) := by
+--   -- Injective S := by
+--   constructor
+--   intro X Y g f h
+
+--   -- write S = lim S' n, with epic transition maps p n : S' (n+1) ⟶ S' n
+--   let S' (n : ℕ) := lightToProfinite.obj (S.component n)
+--   haveI (n : ℕ) : Finite (S' n) := by unfold S'; dsimp; exact inferInstance
+--   haveI : Nonempty (S' 0) := Nonempty.map (S.proj 0).toFun inferInstance
+--   let p (n : ℕ) : S' (n+1) ⟶ S' n := S.transitionMap n
+--   haveI (n : ℕ) : Epi (p n) := (Profinite.epi_iff_surjective (p n)).mpr (S.surjective_transitionMap n)
+--   let g' (n : ℕ) : X ⟶ S' n := g ≫ (S.proj n)
+
+--   -- base step of the induction
+--   obtain ⟨k0, h_down0⟩ :=  (injective_of_finite (S' 0)).factors (g' 0) f
+--   have h_comm0 : f ≫ k0 = (g' 1) ≫ p 0 := by
+--     rw [h_down0]
+--     unfold g'
+--     exact congrArg _ (S.proj_comp_transitionMap 0).symm
+
+--   -- key part of induction step:
+--   have h_step (n : ℕ) (k : Y ⟶ S' n) (h_down : f ≫ k = g' n) :
+--     ∃ k' : Y ⟶ S' (n+1), k' ≫ p n = k ∧ f ≫ k' = g' (n+1) := by
+--     have h_comm : f ≫ k = g' (n+1) ≫ p n := by
+--       rw [h_down]
+--       unfold g'
+--       exact congrArg _ (S.proj_comp_transitionMap n).symm
+--     exact key_lifting_lemma' X Y (S' (n+1)) (S' n) f (p n) (g' (n+1)) k h_comm
+
+--   -- construct compatible family of maps k' n : Y ⟶ S' n
+--   let next (n : ℕ) : { k : Y ⟶ S' n // f ≫ k = g' n } → { k : Y ⟶ S' (n+1) // f ≫ k = g' (n+1) } :=
+--     fun k ↦ ⟨Classical.choose (h_step n k.val k.property),
+--       (Classical.choose_spec (h_step n k.val k.property)).2⟩
+--   let k_lift (n : Nat) : { k : Y ⟶ S' n // f ≫ k = g' n } := Nat.rec ⟨k0, h_down0⟩ next n
+--   have h_down (n : ℕ) : f ≫ (k_lift n).val = g' n := (k_lift n).property
+--   have h_up (n : ℕ) : (k_lift (n+1)).val ≫ p n = (k_lift n).val := by
+--     induction' n with n ih
+--     · exact (Classical.choose_spec (h_step 0 k0 h_down0)).1
+--     · exact (Classical.choose_spec (h_step (n+1) (k_lift (n+1)).val (k_lift (n+1)).property)).1
+--   let k_cone : Cone (S.diagram ⋙ lightToProfinite) :=
+--     { pt := Y, π := ofOpSequence (fun n ↦ (k_lift n).val) (fun n ↦ (h_up n).symm) }
+--   let k : Y ⟶ _ := limit.lift (S.diagram ⋙ lightToProfinite) k_cone
+
+
+
+--   -- let k := IsLimit.lift (fun n => k' n)
+
+
+--   -- define k : Y ⟶ S as the limit of the k' n, using the universal property of the limit
+--   -- TODO: understand the API for limits in Lean
+
+
+
+
+
+--   sorry
 
 end LightProfinite
