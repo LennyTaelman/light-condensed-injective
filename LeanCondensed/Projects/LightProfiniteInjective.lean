@@ -414,8 +414,16 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S :=
 
   -- now the induced map Y ⟶ S = lim S.component is the desired map
   use S.asLimit.lift k_cone
-  dsimp
-
+  let g_cone : Cone S.diagram :=
+    { pt := X, π := ofOpSequence (fun n ↦ g ≫ S.proj n) (fun n ↦ by
+      simp only [Functor.const_obj_obj, Functor.const_obj_map, Category.id_comp]
+      exact congrArg _ (S.proj_comp_transitionMap n).symm) }
+  have hg : g = S.asLimit.lift g_cone := by
+    apply S.asLimit.uniq g_cone
+    intro n
+    simp only [ofOpSequence_app]
+  rw [hg]
+  -- ⊢ f ≫ S.asLimit.lift k_cone = S.asLimit.lift g_cone
 
 
 
