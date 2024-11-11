@@ -6,6 +6,7 @@ import Mathlib.CategoryTheory.Preadditive.Injective
 import Mathlib.Topology.Category.Profinite.Basic
 import Mathlib.Topology.Category.LightProfinite.AsLimit
 import Mathlib.CategoryTheory.Functor.OfSequence
+-- import Mathlib.CategoryTheory.Functor.OfOpSequence
 
 
 -- import LeanCondensed.Mathlib.Condensed.Light.Limits
@@ -357,22 +358,6 @@ namespace LightProfinite
 open Limits
 
 
-/- silly hack; I don't seem to manage to call NatTrans.ofOpSequence directly from Functor.OfSequence
-  so copying the definition here
--/
-variable {C : Type*} [Category C] {F G : ℕᵒᵖ ⥤ C} (app : ∀ (n : ℕ), F.obj ⟨n⟩ ⟶ G.obj ⟨n⟩)
-  (naturality : ∀ (n : ℕ), F.map (homOfLE (n.le_add_right 1)).op ≫ app n =
-      app (n + 1) ≫ G.map (homOfLE (n.le_add_right 1)).op)
-
-@[simps!]
-def ofOpSequence : F ⟶ G where
-  app n := app n.unop
-  naturality _ _ f := by
-    let φ : G.rightOp ⟶ F.rightOp := NatTrans.ofSequence (fun n ↦ (app n).op)
-      (fun n ↦ Quiver.Hom.unop_inj (naturality n).symm)
-    exact Quiver.Hom.op_inj (φ.naturality f.unop).symm
-
-
 -- now we can finally prove the main theorem
 
 theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S := by
@@ -410,32 +395,28 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S :=
     · exact (Classical.choose_spec (h_step 0 k0 h_down0)).1
     · exact (Classical.choose_spec (h_step (n+1) (k_seq (n+1)).val (k_seq (n+1)).property)).1
   let k_cone : Cone S.diagram :=
-    { pt := Y, π := ofOpSequence (fun n ↦ (k_seq n).val) (fun n ↦ (h_up n).symm) }
+    { pt := Y, π := NatTrans.ofOpSequence (fun n ↦ (k_seq n).val) (fun n ↦ (h_up n).symm) }
 
   -- now the induced map Y ⟶ S = lim S.component is the desired map
   use S.asLimit.lift k_cone
   let g_cone : Cone S.diagram :=
-    { pt := X, π := ofOpSequence (fun n ↦ g ≫ S.proj n) (fun n ↦ by
+    { pt := X, π := NatTrans.ofOpSequence (fun n ↦ g ≫ S.proj n) (fun n ↦ by
       simp only [Functor.const_obj_obj, Functor.const_obj_map, Category.id_comp]
       exact congrArg _ (S.proj_comp_transitionMap n).symm) }
   have hg : g = S.asLimit.lift g_cone := by
     apply S.asLimit.uniq g_cone
     intro n
-    simp only [ofOpSequence_app]
+    simp only [NatTrans.ofOpSequence_app]
   rw [hg]
   -- ⊢ f ≫ S.asLimit.lift k_cone = S.asLimit.lift g_cone
-
-
-
-
-
-
-  -- let k := IsLimit.lift (fun n => k' n)
-
-
-  -- define k : Y ⟶ S as the limit of the k' n, using the universal property of the limit
-  -- TODO: understand the API for limits in Lean
-
+  -- need some stuff on functoriality of cones?
+  let fk_cone :=  k_cone.extend f
+  have h_fk_g : fk_cone = g_cone := by
+    unfold fk_cone g_cone Cone.extend
+    congr
+    ext n
+    dsimp
+    rw [h_down]
 
 
 
