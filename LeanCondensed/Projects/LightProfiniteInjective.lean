@@ -3,15 +3,10 @@ Authors: Lenny Taelman
 -/
 
 import Mathlib.CategoryTheory.Preadditive.Injective
-import Mathlib.Topology.Category.Profinite.Limits
 import Mathlib.Topology.Category.LightProfinite.AsLimit
 import Mathlib.CategoryTheory.Functor.OfSequence
 import Mathlib.CategoryTheory.EpiMono
 
--- import Mathlib.CategoryTheory.Functor.OfOpSequence
-
-
--- import LeanCondensed.Mathlib.Condensed.Light.Limits
 
 /-!
 
@@ -444,6 +439,7 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S :=
     NatTrans.comp_app,  Functor.const_map_app]
 
 -- now check which axioms were used
+#check injective_of_light
 #print axioms injective_of_light
 
 
