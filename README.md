@@ -1,7 +1,9 @@
-# LeanCondensed
+# LightProfiniteInjective
 
-This is the development repository for *formalised* condensed mathematics in Lean. The mathematical results are due to Dustin Clausen and Peter Scholze. 
+This is an experimental repository containing mathematics formalised in Lean 4. It was cloned from <https://github.com/dagurtomas/LeanCondensed>, and should eventually be merged with LeanCondensed again.
+
+This repository adds a proof that non-empty light profinite spaces are injective objects in the category of light profinite spaces, a result due to Dustin Clausen and Peter Scholze
 
 ## Code organisation
 
-The Lean code is contained in the directory `LeanCondensed`. The subdirectory `Mathlib` contains code that is ready to be integrated in Mathlib (and has in many cases already been PR-ed), organised in such a way that the file names correspond to the ones in Mathlib. The other subdirectories contain more work-in-progress code. The goal is to get everything into Mathlib eventually.
+The main result is in `LightProfiniteInjective`. The rest of the code hierarchy is cloned from LeanCondensed, see link above.
