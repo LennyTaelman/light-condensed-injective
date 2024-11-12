@@ -6,6 +6,7 @@ Authors: Lenny Taelman
 
 import Mathlib.CategoryTheory.Preadditive.Injective
 import Mathlib.Topology.Category.LightProfinite.AsLimit
+import Mathlib.Topology.Category.CompHausLike.Limits
 import Mathlib.CategoryTheory.Functor.OfSequence
 import Mathlib.CategoryTheory.EpiMono
 
@@ -281,19 +282,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
 
 open CategoryTheory
 
--- categorically stated versions of key_lifting_lemma
-
-lemma profinite_key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
-    (f : X ⟶ Y) [Mono f] (f' : S ⟶ T) [Epi f']
-    (g : X ⟶ S) (g' : Y ⟶ T) (h_comm : f ≫ g' = g ≫ f') :
-    ∃ k : Y ⟶ S, (k ≫ f' = g') ∧ (f ≫ k = g)  := by
-  have h_comm' : (f ≫ g').toFun = (g ≫ f').toFun := congrArg _ h_comm
-  obtain ⟨k_fun, k_cont, h2, h3⟩ := key_lifting_lemma X Y S T
-    f.toFun f.continuous ((CompHausLike.mono_iff_injective f).mp inferInstance)
-    f'.toFun ((Profinite.epi_iff_surjective f').mp inferInstance)
-    g.toFun g.continuous g'.toFun g'.continuous h_comm'
-  exact ⟨⟨k_fun, k_cont⟩, ConcreteCategory.hom_ext_iff.mpr (congrFun h2),
-    ConcreteCategory.hom_ext_iff.mpr (congrFun h3)⟩
+-- categorically stated version of key_lifting_lemma
 
 lemma light_key_lifting_lemma (X Y S T : LightProfinite.{u}) [hS : Finite S]
     (f : X ⟶ Y) [Mono f] (f' : S ⟶ T) [Epi f']
@@ -311,65 +300,29 @@ lemma light_key_lifting_lemma (X Y S T : LightProfinite.{u}) [hS : Finite S]
     ConcreteCategory.hom_ext_iff.mpr (congrFun h3)⟩
 
 
-/-
-  The next four lemmas establish that the map from a nonempty (light) profinite
-  to the final object is a (split) epi.
-  Probably nicer to do this for CompHausLike or similar
--/
-
-lemma to_final_split_epi (X : Profinite.{u}) [Nonempty X] :
-    IsSplitEpi (Limits.terminalIsTerminal.from X) := by
-  let s : ⊤_ Profinite ⟶ X :=
-    { toFun := fun _ => Nonempty.some inferInstance, continuous_toFun := continuous_const}
-  exact IsSplitEpi.mk' { section_ := s, id := Limits.terminal.hom_ext _ _ }
-
-lemma to_final_epi (X : Profinite.{u}) [Nonempty X] :
-    Epi (Limits.terminalIsTerminal.from X) := by
-  haveI := to_final_split_epi X
-  exact IsSplitEpi.epi (Limits.terminalIsTerminal.from X)
-
-lemma light_to_final_split_epi (X : LightProfinite.{u}) [Nonempty X] :
-    IsSplitEpi (Limits.terminalIsTerminal.from X) := by
-  let s : ⊤_ LightProfinite ⟶ X :=
-    { toFun := fun _ => Nonempty.some inferInstance, continuous_toFun := continuous_const}
-  exact IsSplitEpi.mk' { section_ := s, id := Limits.terminal.hom_ext _ _ }
-
-lemma light_to_final_epi (X : LightProfinite.{u}) [Nonempty X] :
-    Epi (Limits.terminalIsTerminal.from X) := by
-  haveI := light_to_final_split_epi X
-  exact IsSplitEpi.epi (Limits.terminalIsTerminal.from X)
-
 
 /-
-  Next we show that nonempty (light) profinite spaces are injective.
+  Next we show that nonempty finite discrete spaces are injective in LightProfinite
 -/
 
-lemma light_injective_of_finite (S : LightProfinite.{u}) [Nonempty S] [Finite S]:
-    Injective (S) := by
-  constructor
-  intro X Y g f f_mono
-  let f' := Limits.terminalIsTerminal.from S
-  haveI : Epi  f' := light_to_final_epi S
-  let g' := Limits.terminalIsTerminal.from Y
-  obtain ⟨k, _, h2⟩ := light_key_lifting_lemma _ _ S _ f f' g g' (Limits.terminal.hom_ext _ _)
-  exact ⟨k, h2⟩
+instance (X : LightProfinite.{u}) [Nonempty X] :
+    IsSplitEpi (CompHausLike.isTerminalPUnit.from X) := IsSplitEpi.mk'
+  { section_ := CompHausLike.const _ (Nonempty.some inferInstance)
+    id := CompHausLike.isTerminalPUnit.hom_ext _ _ }
 
-lemma profinite_injective_of_finite (S : Profinite.{u}) [Nonempty S] [Finite S]:
-    Injective (S) := by
-  constructor
-  intro X Y g f f_mono
-  let f' := Limits.terminalIsTerminal.from S
-  haveI : Epi  f' := to_final_epi S
-  let g' := Limits.terminalIsTerminal.from Y
-  obtain ⟨k, _, h2⟩ := profinite_key_lifting_lemma _ _ S _ f f' g g' (Limits.terminal.hom_ext _ _)
-  exact ⟨k, h2⟩
-
+instance light_injective_of_finite (S : LightProfinite.{u}) [Nonempty S] [Finite S]:
+    Injective S where
+  factors {X Y} g f f_mono := by
+    let f' := CompHausLike.isTerminalPUnit.from S
+    let g' := CompHausLike.isTerminalPUnit.from Y
+    obtain ⟨k, _, h2⟩ := light_key_lifting_lemma _ _ S _ f f' g g'
+      (CompHausLike.isTerminalPUnit.hom_ext _ _)
+    exact ⟨k, h2⟩
 
 open LightProfinite Limits
 
 /-
   Main theorem: a nonempty light profinite space is injective in LightProfinite
-  TODO: a nonempty light profinite space is injective in Profinite
 -/
 
 /-
@@ -388,7 +341,7 @@ open LightProfinite Limits
 
 -/
 
-theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S := by
+instance injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S := by
   constructor
   intro X Y g f h
   -- help the instance inference a bit
@@ -448,9 +401,5 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S :=
     NatTrans.comp_app,  Functor.const_map_app]
 
 
--- instance version
-
-
-instance (S : LightProfinite.{u}) [Nonempty S] : Injective S := injective_of_light S
 
 end LightProfinite
