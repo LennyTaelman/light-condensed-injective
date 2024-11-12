@@ -19,9 +19,9 @@ in light condensed abelian groups.
 
 noncomputable section
 
+namespace LightProfinite
 
 universe u
-
 
 open Set
 
@@ -111,7 +111,7 @@ lemma clopen_partition_of_disjoint_closeds_in_clopens
     have C_subset_D : ∀ i, C i ⊆ D i := cases C0_subset_D0 C'_subset_D
     have C_cover_D : (⋃ i, D i) ⊆ (⋃ i, C i) := by -- messy, but I don't see easy simplification
       intro x hx
-      simp
+      simp only [mem_iUnion]
       by_cases hx0 : x ∈ C0
       · exact ⟨0, hx0⟩
       · by_cases hxD : x ∈ D 0
@@ -187,8 +187,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   have D_clopen i : IsClopen (D i) := IsClopen.preimage (isClopen_discrete {f' (ψ i)}) hg'
   have Z_subset_D i : Z i ⊆ D i := by
     intro z hz
-    rw [mem_preimage]
-    simp
+    rw [mem_preimage, mem_singleton_iff]
     obtain ⟨x, hx1, hx2⟩ := (mem_image _ _ _).mp hz
     rw [←hx2]
     have h_comm' : g' (f x) = f' (g x) := congr_fun h_comm x
@@ -196,7 +195,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
     exact (eq_of_mem_singleton hx1).symm
   have D_cover_univ : univ ⊆ (⋃ i, D i) := by
     intro y _
-    simp only [mem_iUnion]
+    rw [mem_iUnion]
     obtain ⟨s, hs⟩ := f'_surj (g' y)
     use φ s
     rw [mem_preimage, h1]
@@ -220,7 +219,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
   -- now verify that k has the desired properties
   have h_f'k_g' : f' ∘ k = g' := by
     ext y
-    simp
+    rw [Function.comp_apply]
     -- y is contained in C i for some i
     have hy : y ∈ ⋃ i, C i := by
       rw [C_cover_univ]
@@ -231,7 +230,7 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
     exact symm (C_subset_D i hi)
   have h_kf_g : k ∘ f = g := by
     ext x
-    simp
+    rw [Function.comp_apply]
     let i := φ (g x)
     have hfC : f x ∈ Z i := by
       rw [mem_image]
@@ -245,7 +244,8 @@ lemma key_lifting_lemma (X Y S T : Profinite.{u}) [Finite S]
     constructor
     · exact liftCover_of_mem
     · rw [preimage_liftCover]
-      simp
+      simp only [mem_iUnion, mem_image, mem_preimage, exists_and_left,
+        Subtype.exists, exists_prop, exists_eq_right, forall_exists_index, and_imp]
       intro j hji hj
       rw [Function.LeftInverse.injective h2 hji] at hj
       exact hj
@@ -307,7 +307,6 @@ lemma to_final_split_epi (X : Profinite.{u}) [Nonempty X] :
   refine { section_ := ?se.section_, id := ?se.id }
   use fun _ ↦ Nonempty.some inferInstance
   exact continuous_const
-  -- dsimp
   exact Limits.terminal.hom_ext _ _
 
 
@@ -374,7 +373,6 @@ open Opposite Nat
 
 -/
 
-namespace LightProfinite
 open Limits
 
 
@@ -384,7 +382,8 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S :=
   constructor
   intro X Y g f h
   -- help the instance inference a bit
-  haveI (n : ℕ) : Finite (S.component n) := by unfold component; dsimp; exact inferInstance
+  haveI (n : ℕ) : Finite (S.component n) := by
+    unfold component; rw [Functor.comp_obj]; exact inferInstance
   haveI : Nonempty (S.component 0) := Nonempty.map (S.proj 0).toFun inferInstance
   haveI (n : ℕ) : Epi (S.transitionMap n) := (LightProfinite.epi_iff_surjective _).mpr
     (S.surjective_transitionMap n)
