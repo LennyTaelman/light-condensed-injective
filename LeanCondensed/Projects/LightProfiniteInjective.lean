@@ -1,4 +1,6 @@
 /-
+Copyright (c) 2024 Lenny Taelman. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Lenny Taelman
 -/
 
@@ -9,16 +11,26 @@ import Mathlib.CategoryTheory.EpiMono
 
 /-
 
-# Project: show that non-empty light profinite spaces are injective in all profinite spaces
+# Injectivity of light profinite spaces
 
-Code below establishes the non-empty light profinite spaces are injective in the
-category of light profinite spaces. Also prepares for proving that non-empty light
+This file establishes the non-empty light profinite spaces are injective in the
+category of light profinite spaces. This is used in the proof the the null sequence
+module is projective in light condensed abelian groups.
+
+The code below also prepares for proving that non-empty light
 profinite spaces are injective in the category of all profinite spaces.
 
-The former statement is used in the proof the the null sequence module is projective
-in light condensed abelian groups.
+## Implementation notes
 
-Reference: https://kskedlaya.org/condensed/sec_profinite_set.html#sec_profinite_set-5
+The main result is `injective_of_light`, which provides an instance of `Injective S` for
+a non-empty light profinite space `S`. The proof uses an inductive lifting argument
+along a presentation of S as sequential limit of finite spaces. The key lemma is
+`light_key_lifting_lemma`.
+
+## References
+
+* https://kskedlaya.org/condensed/sec_profinite_set.html#sec_profinite_set-5
+
 
 -/
 
@@ -29,7 +41,7 @@ open Set
 
 /-
   For every closed Z ⊆ open U ⊆ profinite X, there is an clopen C with
-  Z ⊆ C ⊆ U.  Perhaps this should go in mathlib?
+  Z ⊆ C ⊆ U.  Perhaps this should go in mathlib somewhere?
 -/
 
 lemma clopen_of_closed_subset_open  (X : Profinite.{u}) (Z U : Set X)
@@ -430,3 +442,12 @@ theorem injective_of_light (S : LightProfinite.{u}) [Nonempty S]: Injective S :=
   intro n
   simp only [Category.assoc, IsLimit.fac, Cone.extend_π,  Cone.extensions_app,
     NatTrans.comp_app,  Functor.const_map_app]
+
+
+-- instance version
+
+namespace LightProfinite
+
+instance (S : LightProfinite.{u}) [Nonempty S] : Injective S := injective_of_light S
+
+end LightProfinite

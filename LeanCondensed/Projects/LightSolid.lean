@@ -8,6 +8,7 @@ import Mathlib.Condensed.Discrete.Basic
 import Mathlib.Topology.Category.LightProfinite.Sequence
 import LeanCondensed.Mathlib.Condensed.Light.Limits
 import LeanCondensed.Projects.InternallyProjective
+-- import LeanCondensed.Projects.LightProfiniteInjective
 /-!
 
 # Project: light solid abelian groups
@@ -61,10 +62,6 @@ def tensorCokerIso {A B C : LightCondMod R} (f : A ⟶ B) : cokernel f ⊗ C ≅
 
 end MonoidalClosed
 
-namespace LightProfinite
-
--- nonempty light profinite spaces are injective in the category of light profinite spaces
-instance (S : LightProfinite.{u}) [Nonempty S] : Injective S := sorry
 
 def shift : ℕ∪{∞} ⟶ ℕ∪{∞} where
   toFun
